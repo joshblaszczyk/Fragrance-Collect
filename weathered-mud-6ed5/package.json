@@ -1,0 +1,16 @@
+{
+	"name": "weathered-mud-6ed5",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev"
+	},
+	"dependencies": {
+		"resend": "^4.0.0"
+	},
+	"devDependencies": {
+		"wrangler": "^4.31.0"
+	}
+}

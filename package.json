@@ -1,0 +1,21 @@
+{
+  "name": "fragrance-collect",
+  "version": "1.0.0",
+  "description": "Fragrance Collect website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^3.0.5"
+  },
+  "keywords": [
+    "fragrance",
+    "perfume",
+    "ecommerce"
+  ],
+  "author": "",
+  "license": "ISC"
+}

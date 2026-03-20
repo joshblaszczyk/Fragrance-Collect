@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In / Sign Up - Fragrance Collect</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="icon" href="data:,">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="auth-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- GitHub Pages Performance Optimizations -->
+    <meta http-equiv="Cache-Control" content="public, max-age=3600">
+    <meta http-equiv="Expires" content="3600">
+    <link rel="dns-prefetch" href="//weathered-mud-6ed5.joshuablaszczyk.workers.dev">
+    <link rel="preconnect" href="//weathered-mud-6ed5.joshuablaszczyk.workers.dev" crossorigin>
+    <script>
+        // Force HTTPS redirect
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            location.replace(`https:${location.href.substring(location.protocol.length)}`);
+        }
+        // Use Cloudflare Worker API
+        window.API_BASE = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
+    </script>
+</head>
+<body>
+    <div id="search-loading-bar" class="search-loading-bar" style="display: none;">
+        <div class="loading-progress"></div>
+        <span class="loading-text">Searching...</span>
+    </div>
+    <!-- Fragrance Collect Header -->
+    <nav class="fragrance-header">
+        <div class="header-container">
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <a href="main.html" class="brand-logo">
+                    <img src="emblem.png" alt="Fragrance Collect Logo" class="logo-emblem">
+                    <span class="brand-text">Fragrance Collect</span>
+                </a>
+            </div>
+
+            <!-- Desktop Navigation -->
+            <div class="nav-section">
+                <ul class="main-nav">
+                    <li><a href="main.html#home" class="nav-link">Home</a></li>
+                    <li><a href="main.html#viral-tiktok-finds" class="nav-link">Explore</a></li>
+                    <li><a href="main.html#collections" class="nav-link">Collections</a></li>
+                    <li><a href="main.html#top-rated" class="nav-link">Top Picks</a></li>
+                    <li><a href="main.html#personalized" class="nav-link">Personalized</a></li>
+                    <li>
+                        <!-- Menu Button - Opens Mega Menu on Desktop -->
+                        <div class="menu-dropdown pc-menu-only">
+                            <a href="#" class="nav-link menu-link">
+                                Menu <span class="dropdown-arrow">▾</span>
+                            </a>
+                            <!-- Mega Menu -->
+                            <div class="mega-menu">
+                                <div class="mega-menu-content">
+                                    <!-- Column 1: Main Navigation -->
+                                    <div class="mega-menu-column">
+                                        <h3>Main Navigation</h3>
+                                        <ul>
+                                            <li><a href="main.html#home">Home</a></li>
+                                            <li><a href="main.html#viral-tiktok-finds">Explore</a></li>
+                                            <li><a href="main.html#collections">Collections</a></li>
+                                            <li><a href="main.html#top-rated">Top Picks</a></li>
+                                            <li><a href="main.html#personalized">Personalized</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 2: Shop by Scent -->
+                                    <div class="mega-menu-column">
+                                        <h3>Shop by Scent</h3>
+                                        <ul>
+                                            <li><a href="main.html#filter?scent=floral">Floral</a></li>
+                                            <li><a href="main.html#filter?scent=woody">Woody</a></li>
+                                            <li><a href="main.html#filter?scent=oriental">Oriental</a></li>
+                                            <li><a href="main.html#filter?scent=fresh">Fresh</a></li>
+                                            <li><a href="main.html#filter?scent=citrus">Citrus</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 3: Collections -->
+                                    <div class="mega-menu-column">
+                                        <h3>Collections</h3>
+                                        <ul>
+                                            <li><a href="main.html#collections?type=designer">Designer</a></li>
+                                            <li><a href="main.html#collections?type=niche">Niche</a></li>
+                                            <li><a href="main.html#collections?type=vintage">Vintage</a></li>
+                                            <li><a href="main.html#collections?type=seasonal">Seasonal</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 4: Customer Service -->
+                                    <div class="mega-menu-column">
+                                        <h3>Customer Service</h3>
+                                        <ul>
+                                            <li><a href="customer-service.html">Customer Service</a></li>
+                                            <li><a href="contact.html">Contact Us</a></li>
+                                            <li><a href="size-guide.html">Size Guide</a></li>
+                                            <li><a href="faq.html">FAQ</a></li>
+                                            <li><a href="terms-of-service.html">Terms of Service</a></li>
+                                            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 5: Image Carousel -->
+                                    <div class="mega-menu-image">
+                                        <div class="image-carousel">
+                                            <img src="Chanel_IMG.jpg" alt="Chanel Promotion" class="promo-image active">
+                                            <img src="Dior_IMG.jpg" alt="Dior Promotion" class="promo-image">
+                                            <img src="Creed_ING.jpg" alt="Creed Promotion" class="promo-image">
+                                        </div>
+                                        <div class="image-indicators">
+                                            <div class="indicator active" data-index="0"></div>
+                                            <div class="indicator" data-index="1"></div>
+                                            <div class="indicator" data-index="2"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Utility Icons -->
+            <div class="utility-section">
+                <button class="utility-btn search-btn" aria-label="Search">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+
+                <a href="main.html#favorites" class="utility-btn favorites-btn" aria-label="Favorites">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </a>
+
+                <div class="profile-dropdown">
+                    <button class="utility-btn profile-btn" aria-label="Profile">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </button>
+
+                    <!-- Profile Dropdown Menu -->
+                    <div class="profile-menu">
+                        <a href="auth.html?tab=signin" class="profile-menu-item logged-out-only">Sign In</a>
+                        <a href="auth.html?tab=signup" class="profile-menu-item logged-out-only">Sign Up</a>
+                        <div class="profile-menu-divider logged-out-only"></div>
+                        <a href="account.html" class="profile-menu-item logged-in-only" style="display: none;">Profile & Settings</a>
+                        <a href="account.html#preferences" class="profile-menu-item logged-in-only" style="display: none;">Fragrance Preferences</a>
+                        <a href="account.html#orders" class="profile-menu-item logged-in-only" style="display: none;">Order History</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="mobile-menu-toggle" aria-label="Toggle Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav-menu">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-header">
+                    <h3>Navigation</h3>
+                    <button class="mobile-menu-close" aria-label="Close Menu">×</button>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Main Navigation</h4>
+                    <a href="main.html#home" class="mobile-nav-link">Home</a>
+                    <a href="main.html#viral-tiktok-finds" class="mobile-nav-link">Explore</a>
+                    <a href="main.html#collections" class="mobile-nav-link">Collections</a>
+                    <a href="main.html#top-rated" class="mobile-nav-link">Top Picks</a>
+                    <a href="main.html#personalized" class="mobile-nav-link">Personalized</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Shop by Scent</h4>
+                    <a href="main.html#filter?scent=floral" class="mobile-nav-link">Floral</a>
+                    <a href="main.html#filter?scent=woody" class="mobile-nav-link">Woody</a>
+                    <a href="main.html#filter?scent=oriental" class="mobile-nav-link">Oriental</a>
+                    <a href="main.html#filter?scent=fresh" class="mobile-nav-link">Fresh</a>
+                    <a href="main.html#filter?scent=citrus" class="mobile-nav-link">Citrus</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Collections</h4>
+                    <a href="main.html#collections?type=designer" class="mobile-nav-link">Designer</a>
+                    <a href="main.html#collections?type=niche" class="mobile-nav-link">Niche</a>
+                    <a href="main.html#collections?type=vintage" class="mobile-nav-link">Vintage</a>
+                    <a href="main.html#collections?type=seasonal" class="mobile-nav-link">Seasonal</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Customer Service</h4>
+                    <a href="customer-service.html" class="mobile-nav-link">Customer Service</a>
+                    <a href="contact.html" class="mobile-nav-link">Contact Us</a>
+                    <a href="size-guide.html" class="mobile-nav-link">Size Guide</a>
+                    <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                    <a href="terms-of-service.html" class="mobile-nav-link">Terms of Service</a>
+                    <a href="privacy-policy.html" class="mobile-nav-link">Privacy Policy</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Featured Brands</h4>
+                    <a href="main.html#filter?brand=chanel" class="mobile-nav-link">Chanel</a>
+                    <a href="main.html#filter?brand=dior" class="mobile-nav-link">Dior</a>
+                    <a href="main.html#filter?brand=creed" class="mobile-nav-link">Creed</a>
+                    <a href="main.html#filter?brand=tom-ford" class="mobile-nav-link">Tom Ford</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Account</h4>
+                    <a href="auth.html?tab=signin" class="mobile-nav-link logged-out-only">Sign In</a>
+                    <a href="auth.html?tab=signup" class="mobile-nav-link logged-out-only">Sign Up</a>
+                    <a href="account.html" class="mobile-nav-link logged-in-only" style="display: none;">Profile & Settings</a>
+                    <a href="account.html#preferences" class="mobile-nav-link logged-in-only" style="display: none;">Fragrance Preferences</a>
+                    <a href="account.html#orders" class="mobile-nav-link logged-in-only" style="display: none;">Order History</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Backdrop -->
+    <div class="mobile-nav-backdrop"></div>
+
+    <!-- Mobile Navigation Menu -->
+    <div class="mobile-nav-menu">
+        <div class="mobile-nav-content">
+            <div class="mobile-nav-header">
+                <h3>Navigation</h3>
+                <button class="mobile-menu-close" aria-label="Close Menu">×</button>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Main Navigation</h4>
+                <a href="main.html#home" class="mobile-nav-link">Home</a>
+                <a href="main.html#viral-tiktok-finds" class="mobile-nav-link">Explore</a>
+                <a href="main.html#collections" class="mobile-nav-link">Collections</a>
+                <a href="main.html#top-rated" class="mobile-nav-link">Top Picks</a>
+                <a href="main.html#personalized" class="mobile-nav-link">Personalized</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Shop by Scent</h4>
+                <a href="main.html#filter?scent=floral" class="mobile-nav-link">Floral</a>
+                <a href="main.html#filter?scent=woody" class="mobile-nav-link">Woody</a>
+                <a href="main.html#filter?scent=oriental" class="mobile-nav-link">Oriental</a>
+                <a href="main.html#filter?scent=fresh" class="mobile-nav-link">Fresh</a>
+                <a href="main.html#filter?scent=citrus" class="mobile-nav-link">Citrus</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Collections</h4>
+                <a href="main.html#collections?type=designer" class="mobile-nav-link">Designer</a>
+                <a href="main.html#collections?type=niche" class="mobile-nav-link">Niche</a>
+                <a href="main.html#collections?type=vintage" class="mobile-nav-link">Vintage</a>
+                <a href="main.html#collections?type=seasonal" class="mobile-nav-link">Seasonal</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Customer Service</h4>
+                <a href="customer-service.html" class="mobile-nav-link">Customer Service</a>
+                <a href="contact.html" class="mobile-nav-link">Contact Us</a>
+                <a href="size-guide.html" class="mobile-nav-link">Size Guide</a>
+                <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                <a href="terms-of-service.html" class="mobile-nav-link">Terms of Service</a>
+                <a href="privacy-policy.html" class="mobile-nav-link">Privacy Policy</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Featured Brands</h4>
+                <a href="main.html#filter?brand=chanel" class="mobile-nav-link">Chanel</a>
+                <a href="main.html#filter?brand=dior" class="mobile-nav-link">Dior</a>
+                <a href="main.html#filter?brand=creed" class="mobile-nav-link">Creed</a>
+                <a href="main.html#filter?brand=tom-ford" class="mobile-nav-link">Tom Ford</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Account</h4>
+                <a href="auth.html?tab=signin" class="mobile-nav-link logged-out-only">Sign In</a>
+                <a href="auth.html?tab=signup" class="mobile-nav-link logged-out-only">Sign Up</a>
+                <a href="account.html" class="mobile-nav-link logged-in-only" style="display: none;">Profile & Settings</a>
+                <a href="account.html#preferences" class="mobile-nav-link logged-in-only" style="display: none;">Fragrance Preferences</a>
+                <a href="account.html#orders" class="mobile-nav-link logged-in-only" style="display: none;">Order History</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="auth-main">
+        <div class="auth-container">
+            <!-- Tab Navigation -->
+            <div class="auth-tabs" data-active-tab="signin">
+                <button class="tab-btn active" data-tab="signin">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Sign In
+                </button>
+                <button class="tab-btn" data-tab="signup">
+                    <i class="fas fa-user-plus"></i>
+                    Sign Up
+                </button>
+            </div>
+
+            <!-- This view is shown when the user is logged OUT -->
+            <div id="logged-out-view">
+                <!-- Sign In Form -->
+                <div class="auth-form active" id="signin-form">
+                    <div class="auth-header">
+                        <h2 class="form-title">Welcome Back</h2>
+                        <div class="form-title-accent"></div>
+                    </div>
+                    <p class="form-subtitle">Sign in to your account to continue</p>
+                    
+                    <form class="form" id="signin-form-element">
+                        <div class="form-group">
+                            <label for="signin-email">Email</label>
+                            <div class="input-wrapper">
+                                <input type="email" id="signin-email" name="email" placeholder="Enter your email" required>
+                            </div>
+                            <div class="error-message" id="signin-email-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="signin-password">Password</label>
+                            <div class="password-input input-wrapper">
+                                <input type="password" id="signin-password" name="password" placeholder="Enter your password" required>
+                                <button type="button" class="password-toggle" id="signin-password-toggle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="error-message" id="signin-password-error"></div>
+                        </div>
+                        
+                        <div class="form-options">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="remember-me">
+                                <span class="checkmark"></span>
+                                Remember me
+                            </label>
+                            <a href="#" class="forgot-password">Forgot Password?</a>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">
+                            <span class="btn-text">Sign In</span>
+                            <span class="btn-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </button>
+                    </form>
+
+                    <!-- Social Sign In -->
+                    <div class="social-signin">
+                        <div class="divider">
+                            <span>or continue with</span>
+                        </div>
+                        <div class="social-buttons">
+                                                         <div id="g_id_onload"
+                                data-client_id="351083759622-fnmbu0am1knlj8ltcps8i7la64dhjpnn.apps.googleusercontent.com"
+                                 data-context="signin"
+                                 data-ux_mode="popup"
+                                 data-callback="handleCredentialResponse"
+                                 data-auto_prompt="false">
+                            </div>
+                            <div class="g_id_signin"
+                                 data-type="standard"
+                                 data-shape="rectangular"
+                                 data-theme="filled_black"
+                                 data-text="continue_with"
+                                 data-size="large"
+                                 data-logo_alignment="left"
+                                 data-width="380">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sign Up Form -->
+                <div class="auth-form" id="signup-form">
+                    <div class="auth-header">
+                        <h2 class="form-title">Create Account</h2>
+                        <div class="form-title-accent"></div>
+                    </div>
+                    <p class="form-subtitle">Join us to discover your signature scent</p>
+                    
+                     <form class="form" id="signup-form-element">
+                        <div class="form-group">
+                            <label for="signup-name">Full Name</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="signup-name" name="name" placeholder="Enter your full name" required>
+                            </div>
+                            <div class="error-message" id="signup-name-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="signup-email">Email</label>
+                            <div class="input-wrapper">
+                                <input type="email" id="signup-email" name="email" placeholder="Enter your email" required>
+                            </div>
+                            <div class="error-message" id="signup-email-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="signup-password">Password</label>
+                            <div class="password-input input-wrapper">
+                                <input type="password" id="signup-password" name="password" placeholder="Create a password" required>
+                                <button type="button" class="password-toggle" id="signup-password-toggle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="error-message" id="signup-password-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="signup-confirm-password">Confirm Password</label>
+                            <div class="password-input input-wrapper">
+                                <input type="password" id="signup-confirm-password" name="confirm-password" placeholder="Confirm your password" required>
+                                <button type="button" class="password-toggle" id="signup-confirm-password-toggle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="error-message" id="signup-confirm-password-error"></div>
+                        </div>
+                        
+                        <div class="form-options">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="agree-terms" required>
+                                <span class="checkmark"></span>
+                                <span class="terms-text">I agree to the <a href="terms-of-service.html" class="terms-link" target="_blank">Terms of Service</a> and <a href="privacy-policy.html" class="terms-link" target="_blank">Privacy Policy</a></span>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">
+                            <span class="btn-text">Create Account</span>
+                            <span class="btn-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </button>
+                    </form>
+
+                    <!-- Social Sign Up -->
+                    <div class="social-signin">
+                        <div class="divider">
+                            <span>or sign up with</span>
+                        </div>
+                        <div class="social-buttons">
+                            <!-- The same Google button can be used for sign up -->
+                            <div id="g_id_signup" class="g_id_signin"
+                                 data-type="standard"
+                                 data-shape="rectangular"
+                                 data-theme="filled_black"
+                                 data-text="signup_with"
+                                 data-size="large"
+                                 data-logo_alignment="left"
+                                 data-width="380">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- This view is shown when the user is logged IN -->
+            <div id="logged-in-view" style="display: none;">
+                 <div class="auth-header">
+                    <h2 class="form-title">Welcome</h2>
+                    <div class="form-title-accent"></div>
+                </div>
+                <div id="user-info">
+                    <img id="user-picture" src="" alt="User profile picture">
+                    <p id="user-name"></p>
+                    <p id="user-email"></p>
+                </div>
+                <button id="logout-button" class="submit-btn">
+                     <span class="btn-text">Sign Out</span>
+                </button>
+                <button onclick="window.location.href='main.html'" class="submit-btn" style="margin-top: 1em;">
+                     <span class="btn-text">Go to Main Page</span>
+                </button>
+            </div>
+
+            <!-- Status messages can be displayed here -->
+            <div id="auth-status" class="error-message"></div>
+        </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="success-modal">
+        <div class="success-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Success!</h2>
+            <p>Welcome, <span id="success-user-name"></span>! Your account has been created.</p>
+            <button class="btn" id="continue-to-home-btn">Continue to Home</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 class="footer-title">Fragrance Collect</h3>
+                    <p>Discover the world's finest fragrances curated for the discerning connoisseur.</p>
+                    <div class="social-links">
+                        <a href="https://www.tiktok.com/@the.cologne.archi" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="Visit our TikTok profile"><i class="fab fa-tiktok"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="main.html">Home</a></li>
+                        <li><a href="main.html#favorites">Favorites</a></li>
+                        <li><a href="main.html#collections">Collections</a></li>
+                        <li><a href="main.html#top-rated">Top Rated</a></li>
+                        <li><a href="main.html#shop">Shop</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Customer Service</h4>
+                    <ul class="footer-links">
+                        <li><a href="customer-service.html">Customer Service</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                        <li><a href="size-guide.html">Size Guide</a></li>
+                        <li><a href="faq.html">FAQ</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <div class="contact-info">
+                        <p><i class="fas fa-envelope"></i> info@fragrancecollect.com</p>
+                        <p><i class="fas fa-envelope"></i> support@fragrancecollect.com</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Fragrance Collect. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Perfume Details Modal -->
+    <div class="modal" id="perfume-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-body">
+                <div class="modal-image">
+                    <img id="modal-perfume-image" src="" alt="">
+                </div>
+                <div class="modal-info">
+                    <h2 id="modal-perfume-name"></h2>
+                    <p class="modal-brand" id="modal-perfume-brand"></p>
+                    <div class="modal-rating" id="modal-perfume-rating"></div>
+                    <p class="modal-description" id="modal-perfume-description"></p>
+                    <div class="modal-price" id="modal-perfume-price"></div>
+                    <button class="modal-btn">Add to Cart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Universal Header Script -->
+    <script src="universal-header-script.js"></script>
+
+    <script src="shared-auth.js"></script>
+    <script src="auth-script.js"></script>
+</body>
+</html> 

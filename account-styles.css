@@ -1,0 +1,685 @@
+/* Account Page Specific Styles */
+body {
+    padding-top: 80px; /* Adjust for fixed navbar */
+    background: linear-gradient(135deg, var(--soft-black) 0%, var(--deep-plum) 100%);
+    min-height: 100vh;
+}
+
+.account-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 20px;
+}
+
+.account-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--antique-gold);
+    position: relative;
+}
+
+.account-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.account-header-left {
+    text-align: left;
+}
+
+.account-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-profile-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: rgba(201, 166, 70, 0.1);
+    border: 1px solid var(--antique-gold);
+    border-radius: 25px;
+}
+
+.header-profile-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--antique-gold);
+    object-fit: cover;
+}
+
+.header-user-name {
+    color: var(--warm-white);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.logout-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logout-btn:hover {
+    background: linear-gradient(135deg, #ee5a52, #ff6b6b);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.logout-btn i {
+    font-size: 0.85rem;
+}
+
+.account-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--antique-gold), #e6c866);
+}
+
+.account-header h1 {
+    font-size: 2.5rem;
+    font-family: 'Playfair Display', serif;
+    color: var(--antique-gold);
+    margin-bottom: 0.5rem;
+}
+
+.account-header p {
+    color: var(--warm-white);
+    opacity: 0.8;
+    font-size: 1.1rem;
+}
+
+.account-content {
+    display: flex;
+    gap: 2rem;
+    background: var(--soft-black);
+    border: 1px solid var(--antique-gold);
+    border-radius: 20px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(201, 166, 70, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.account-content::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, var(--antique-gold), transparent, var(--antique-gold));
+    border-radius: 22px;
+    z-index: -1;
+    opacity: 0.3;
+    animation: borderGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes borderGlow {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.6; }
+}
+
+.account-sidebar {
+    flex: 0 0 280px;
+    border-right: 1px solid rgba(201, 166, 70, 0.3);
+    padding-right: 2rem;
+}
+
+.account-sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.account-sidebar nav a {
+    color: var(--warm-white);
+    text-decoration: none;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.account-sidebar nav a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(201, 166, 70, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.account-sidebar nav a:hover::before {
+    left: 100%;
+}
+
+.account-sidebar nav a:hover,
+.account-sidebar nav a.active {
+    background: linear-gradient(135deg, var(--antique-gold), #e6c866);
+    color: var(--soft-black);
+    border-color: var(--antique-gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(201, 166, 70, 0.3);
+}
+
+.account-sidebar nav a i {
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+}
+
+.account-main {
+    flex: 1;
+    padding-left: 1rem;
+}
+
+.account-panel {
+    display: none;
+    animation: fadeInUp 0.5s ease;
+}
+
+.account-panel.active {
+    display: block;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.account-panel h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    font-family: 'Playfair Display', serif;
+    color: var(--antique-gold);
+    position: relative;
+}
+
+.account-panel h2::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 50px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--antique-gold), #e6c866);
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 2rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--warm-white);
+    font-size: 1rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: var(--soft-black);
+    border: 2px solid var(--antique-gold);
+    border-radius: 12px;
+    color: var(--warm-white);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    font-family: 'Lato', sans-serif;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--warm-white);
+    opacity: 0.6;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #e6c866;
+    box-shadow: 0 0 0 4px rgba(201, 166, 70, 0.3);
+    background: var(--deep-plum);
+}
+
+.form-group input:valid,
+.form-group select:valid,
+.form-group textarea:valid {
+    border-color: var(--antique-gold);
+}
+
+.form-group input[readonly] {
+    background: var(--medium-gray);
+    border-color: var(--light-gray);
+    color: var(--warm-white);
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--antique-gold);
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* File Input Styling */
+.form-group input[type="file"] {
+    padding: 0.75rem;
+    background: var(--medium-gray);
+    border: 2px dashed var(--antique-gold);
+    cursor: pointer;
+}
+
+.form-group input[type="file"]:hover {
+    border-color: #e6c866;
+    background: var(--deep-plum);
+}
+
+.current-picture {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.current-picture img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--antique-gold);
+    object-fit: cover;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Checkbox Group Styling */
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--antique-gold);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    background: var(--soft-black);
+    color: var(--warm-white);
+}
+
+.checkbox-group label:hover {
+    background: var(--antique-gold);
+    color: var(--soft-black);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(201, 166, 70, 0.3);
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    accent-color: var(--antique-gold);
+}
+
+/* Button Styling */
+.btn {
+    background: linear-gradient(135deg, var(--antique-gold) 0%, #e6c866 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 1rem 2rem;
+    color: var(--soft-black);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(201, 166, 70, 0.3);
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(201, 166, 70, 0.4);
+    background: linear-gradient(135deg, #e6c866 0%, var(--antique-gold) 100%);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn:disabled:hover {
+    transform: none;
+    box-shadow: 0 4px 15px rgba(201, 166, 70, 0.3);
+    background: linear-gradient(135deg, var(--antique-gold) 0%, #e6c866 100%);
+}
+
+/* Favorites Grid */
+.favorites-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.favorite-item {
+    background: var(--soft-black);
+    border: 2px solid var(--antique-gold);
+    border-radius: 12px;
+    overflow: hidden;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.favorite-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(201, 166, 70, 0.3);
+    border-color: #e6c866;
+}
+
+.favorite-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.favorite-item p {
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--warm-white);
+    margin: 0;
+}
+
+.no-favorites {
+    text-align: center;
+    padding: 2rem;
+    color: var(--warm-white);
+    opacity: 0.8;
+}
+
+/* Enhanced Favorites Card Styles */
+.favorite-card {
+    padding: 1rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.favorite-image {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.favorite-image img {
+    max-width: 120px;
+    max-height: 120px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: var(--warm-white);
+    padding: 0.5rem;
+}
+
+.favorite-info {
+    text-align: center;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.favorite-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--warm-white);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+}
+
+.favorite-brand {
+    color: var(--antique-gold);
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    opacity: 0.9;
+}
+
+.favorite-price {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4CAF50;
+    margin: 0 0 1rem 0;
+}
+
+.favorite-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+    margin-top: auto;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-sm.btn-secondary {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: var(--warm-white);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.btn-sm.btn-secondary:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-sm:not(.btn-secondary) {
+    background: linear-gradient(135deg, var(--antique-gold) 0%, #e6c866 100%);
+    color: var(--soft-black);
+    border: 1px solid var(--antique-gold);
+    font-weight: 600;
+}
+
+.btn-sm:not(.btn-secondary):hover {
+    background: linear-gradient(135deg, #e6c866 0%, var(--antique-gold) 100%);
+    color: var(--soft-black);
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(201, 166, 70, 0.3);
+}
+
+#favorites-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--warm-white);
+    opacity: 0.8;
+}
+
+#favorites-empty-state .btn {
+    margin-top: 1rem;
+    background: linear-gradient(135deg, var(--antique-gold) 0%, #e6c866 100%);
+    color: var(--soft-black);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    border: 1px solid var(--antique-gold);
+}
+
+#favorites-empty-state .btn:hover {
+    background: linear-gradient(135deg, #e6c866 0%, var(--antique-gold) 100%);
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(201, 166, 70, 0.4);
+}
+
+.no-favorites a {
+    color: var(--antique-gold);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.no-favorites a:hover {
+    text-decoration: underline;
+}
+
+.error {
+    color: #ff6b6b;
+    text-align: center;
+    padding: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .account-header-content {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    .account-header-left {
+        text-align: center;
+    }
+    
+    .account-header-right {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .user-profile-display {
+        padding: 0.75rem 1.5rem;
+    }
+    
+    .header-profile-img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .header-user-name {
+        font-size: 1rem;
+    }
+    
+    .logout-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+    }
+    
+    .account-content {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .account-sidebar {
+        flex: none;
+        border-right: none;
+        border-bottom: 1px solid rgba(201, 166, 70, 0.3);
+        padding-right: 0;
+        padding-bottom: 1rem;
+    }
+    
+    .account-sidebar nav {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 0.5rem;
+    }
+    
+    .account-sidebar nav a {
+        white-space: nowrap;
+        padding: 0.75rem 1rem;
+    }
+    
+    .account-main {
+        padding-left: 0;
+    }
+    
+    .checkbox-group {
+        flex-direction: column;
+    }
+    
+    .favorites-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+}

@@ -1,0 +1,28 @@
+name = "weathered-mud-6ed5"
+main = "src/integrated-worker.js"
+compatibility_date = "2025-08-07"
+
+# Add D1 database binding for authentication
+[[d1_databases]]
+binding = "DB"
+database_name = "fragrance-collect-db"
+database_id = "c4ec306a-6521-48ee-afaf-3c8871b40c24"
+
+# This section is for non-secret variables that are safe to commit to Git.
+[vars]
+CJ_WEBSITE_ID = "101510315"
+# Add your Company ID here. It's usually not a secret.
+CJ_COMPANY_ID = "7673871"# <-- PUT YOUR COMPANY ID HERE
+CJ_ADVERTISER_IDS = "all"
+
+# Production domain - will be set via secret for security
+ALLOWED_ORIGIN = "https://fragrancecollect.com"
+
+# The .dev.vars file is used for local development secrets and is NOT committed to Git.
+# 'wrangler dev' will automatically load this file.
+
+# Secrets - these are set via wrangler secret put command
+# RESEND_API_KEY is automatically bound when set with: wrangler secret put RESEND_API_KEY
+
+[observability.logs]
+enabled = true

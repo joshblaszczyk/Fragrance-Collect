@@ -1,0 +1,18 @@
+name = "auth-worker"
+main = "src/worker.js"
+compatibility_date = "2023-10-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Add D1 database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "fragrance-collect-db"
+database_id = "c4ec306a-6521-48ee-afaf-3c8871b40c24"
+
+[vars]
+# Production domain - will be set via secret for security
+ALLOWED_ORIGIN = "https://fragrancecollect.com"
+
+# Observability configuration for consistent logging across deployments
+[observability.logs]
+enabled = true

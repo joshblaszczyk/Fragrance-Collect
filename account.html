@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Fragrance Collect</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="account-styles.css">
+    <link rel="stylesheet" href="password-change-styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- GitHub Pages Performance Optimizations -->
+    <meta http-equiv="Cache-Control" content="public, max-age=3600">
+    <meta http-equiv="Expires" content="3600">
+    <link rel="dns-prefetch" href="//weathered-mud-6ed5.joshuablaszczyk.workers.dev">
+    <link rel="preconnect" href="//weathered-mud-6ed5.joshuablaszczyk.workers.dev" crossorigin>
+    <script>
+        // Force HTTPS redirect
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            location.replace(`https:${location.href.substring(location.protocol.length)}`);
+        }
+        // Use Cloudflare Worker API
+        window.API_BASE = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
+    </script>
+</head>
+<body>
+    <!-- Fragrance Collect Header -->
+    <nav class="fragrance-header">
+        <div class="header-container">
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <a href="main.html" class="brand-logo">
+                    <img src="emblem.png" alt="Fragrance Collect Logo" class="logo-emblem">
+                    <span class="brand-text">Fragrance Collect</span>
+                </a>
+                </div>
+
+            <!-- Desktop Navigation -->
+            <div class="nav-section">
+                <ul class="main-nav">
+                    <li><a href="main.html#home" class="nav-link">Home</a></li>
+                    <li><a href="main.html#viral-tiktok-finds" class="nav-link">Explore</a></li>
+                    <li><a href="main.html#collections" class="nav-link">Collections</a></li>
+                    <li><a href="main.html#top-rated" class="nav-link">Top Picks</a></li>
+                    <li><a href="main.html#personalized" class="nav-link">Personalized</a></li>
+                    <li>
+                        <!-- Menu Button - Opens Mega Menu -->
+                        <div class="menu-dropdown pc-menu-only">
+                            <a href="#" class="nav-link menu-link">
+                                Menu <span class="dropdown-arrow">▾</span>
+                            </a>
+                            <!-- Mega Menu -->
+                            <div class="mega-menu">
+                                <div class="mega-menu-content">
+                                    <!-- Column 1: Main Navigation -->
+                                    <div class="mega-menu-column">
+                                        <h3>Main Navigation</h3>
+                                        <ul>
+                                            <li><a href="main.html#home">Home</a></li>
+                                            <li><a href="main.html#viral-tiktok-finds">Explore</a></li>
+                                            <li><a href="main.html#collections">Collections</a></li>
+                                            <li><a href="main.html#top-rated">Top Picks</a></li>
+                                            <li><a href="main.html#personalized">Personalized</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 2: Shop by Scent -->
+                                    <div class="mega-menu-column">
+                                        <h3>Shop by Scent</h3>
+                                        <ul>
+                                            <li><a href="main.html#filter?scent=floral">Floral</a></li>
+                                            <li><a href="main.html#filter?scent=woody">Woody</a></li>
+                                            <li><a href="main.html#filter?scent=oriental">Oriental</a></li>
+                                            <li><a href="main.html#filter?scent=fresh">Fresh</a></li>
+                                            <li><a href="main.html#filter?scent=citrus">Citrus</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 3: Collections -->
+                                    <div class="mega-menu-column">
+                                        <h3>Collections</h3>
+                                        <ul>
+                                            <li><a href="main.html#collections?type=designer">Designer</a></li>
+                                            <li><a href="main.html#collections?type=niche">Niche</a></li>
+                                            <li><a href="main.html#collections?type=vintage">Vintage</a></li>
+                                            <li><a href="main.html#collections?type=seasonal">Seasonal</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 4: Customer Service -->
+                                    <div class="mega-menu-column">
+                                        <h3>Customer Service</h3>
+                                        <ul>
+                                            <li><a href="customer-service.html">Customer Service</a></li>
+                                            <li><a href="contact.html">Contact Us</a></li>
+                                            <li><a href="size-guide.html">Size Guide</a></li>
+                                            <li><a href="faq.html">FAQ</a></li>
+                                            <li><a href="terms-of-service.html">Terms of Service</a></li>
+                                            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 5: Image Carousel -->
+                                    <div class="mega-menu-image">
+                                        <div class="image-carousel">
+                                            <img src="Chanel_IMG.jpg" alt="Chanel Promotion" class="promo-image active">
+                                            <img src="Dior_IMG.jpg" alt="Dior Promotion" class="promo-image">
+                                            <img src="Creed_ING.jpg" alt="Creed Promotion" class="promo-image">
+                                        </div>
+                                        <div class="image-indicators">
+                                            <div class="indicator active" data-index="0"></div>
+                                            <div class="indicator" data-index="1"></div>
+                                            <div class="indicator" data-index="2"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    </ul>
+                </div>
+
+            <!-- Utility Icons -->
+            <div class="utility-section">
+                <button class="utility-btn search-btn" aria-label="Search">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+
+                <a href="#favorites" class="utility-btn favorites-btn" aria-label="My Favorites">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </a>
+
+                <div class="profile-dropdown">
+                    <button class="utility-btn profile-btn" aria-label="Profile">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </button>
+
+                    <!-- Profile Dropdown Menu -->
+                    <div class="profile-menu">
+                        <a href="auth.html?tab=signin" class="profile-menu-item logged-out-only">Sign In</a>
+                        <a href="auth.html?tab=signup" class="profile-menu-item logged-out-only">Sign Up</a>
+                        <div class="profile-menu-divider logged-out-only"></div>
+                        <a href="account.html" class="profile-menu-item logged-in-only" style="display: none;">Profile & Settings</a>
+                        <a href="account.html#preferences" class="profile-menu-item logged-in-only" style="display: none;">Fragrance Preferences</a>
+                        <a href="account.html#orders" class="profile-menu-item logged-in-only" style="display: none;">Order History</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="mobile-menu-toggle" aria-label="Toggle Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav-menu">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-header">
+                    <h3>Navigation</h3>
+                    <button class="mobile-menu-close" aria-label="Close Menu">×</button>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Main Navigation</h4>
+                    <a href="main.html#home" class="mobile-nav-link">Home</a>
+                    <a href="main.html#viral-tiktok-finds" class="mobile-nav-link">Explore</a>
+                    <a href="main.html#collections" class="mobile-nav-link">Collections</a>
+                    <a href="main.html#top-rated" class="mobile-nav-link">Top Picks</a>
+                    <a href="main.html#personalized" class="mobile-nav-link">Personalized</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Shop by Scent</h4>
+                    <a href="main.html#filter?scent=floral" class="mobile-nav-link">Floral</a>
+                    <a href="main.html#filter?scent=woody" class="mobile-nav-link">Woody</a>
+                    <a href="main.html#filter?scent=oriental" class="mobile-nav-link">Oriental</a>
+                    <a href="main.html#filter?scent=fresh" class="mobile-nav-link">Fresh</a>
+                    <a href="main.html#filter?scent=citrus" class="mobile-nav-link">Citrus</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Collections</h4>
+                    <a href="main.html#collections?type=designer" class="mobile-nav-link">Designer</a>
+                    <a href="main.html#collections?type=niche" class="mobile-nav-link">Niche</a>
+                    <a href="main.html#collections?type=vintage" class="mobile-nav-link">Vintage</a>
+                    <a href="main.html#collections?type=seasonal" class="mobile-nav-link">Seasonal</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Customer Service</h4>
+                    <a href="customer-service.html" class="mobile-nav-link">Customer Service</a>
+                    <a href="contact.html" class="mobile-nav-link">Contact Us</a>
+                    <a href="size-guide.html" class="mobile-nav-link">Size Guide</a>
+                    <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                    <a href="terms-of-service.html" class="mobile-nav-link">Terms of Service</a>
+                    <a href="privacy-policy.html" class="mobile-nav-link">Privacy Policy</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Featured Brands</h4>
+                    <a href="main.html#filter?brand=chanel" class="mobile-nav-link">Chanel</a>
+                    <a href="main.html#filter?brand=dior" class="mobile-nav-link">Dior</a>
+                    <a href="main.html#filter?brand=creed" class="mobile-nav-link">Creed</a>
+                    <a href="main.html#filter?brand=tom-ford" class="mobile-nav-link">Tom Ford</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Account</h4>
+                    <a href="auth.html?tab=signin" class="mobile-nav-link logged-out-only">Sign In</a>
+                    <a href="auth.html?tab=signup" class="mobile-nav-link logged-out-only">Sign Up</a>
+                    <a href="account.html" class="mobile-nav-link logged-in-only" style="display: none;">Profile & Settings</a>
+                    <a href="account.html#preferences" class="mobile-nav-link logged-in-only" style="display: none;">Fragrance Preferences</a>
+                    <a href="account.html#orders" class="mobile-nav-link logged-in-only" style="display: none;">Order History</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Backdrop -->
+    <div class="mobile-nav-backdrop"></div>
+
+    <!-- Mobile Navigation Menu -->
+    <div class="mobile-nav-menu">
+        <div class="mobile-nav-content">
+            <div class="mobile-nav-header">
+                <h3>Navigation</h3>
+                <button class="mobile-menu-close" aria-label="Close Menu">×</button>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Main Navigation</h4>
+                <a href="main.html#home" class="mobile-nav-link">Home</a>
+                <a href="main.html#viral-tiktok-finds" class="mobile-nav-link">Explore</a>
+                <a href="main.html#collections" class="mobile-nav-link">Collections</a>
+                <a href="main.html#top-rated" class="mobile-nav-link">Top Picks</a>
+                <a href="main.html#personalized" class="mobile-nav-link">Personalized</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Shop by Scent</h4>
+                <a href="main.html#filter?scent=floral" class="mobile-nav-link">Floral</a>
+                <a href="main.html#filter?scent=woody" class="mobile-nav-link">Woody</a>
+                <a href="main.html#filter?scent=oriental" class="mobile-nav-link">Oriental</a>
+                <a href="main.html#filter?scent=fresh" class="mobile-nav-link">Fresh</a>
+                <a href="main.html#filter?scent=citrus" class="mobile-nav-link">Citrus</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Collections</h4>
+                <a href="main.html#collections?type=designer" class="mobile-nav-link">Designer</a>
+                <a href="main.html#collections?type=niche" class="mobile-nav-link">Niche</a>
+                <a href="main.html#collections?type=vintage" class="mobile-nav-link">Vintage</a>
+                <a href="main.html#collections?type=seasonal" class="mobile-nav-link">Seasonal</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Customer Service</h4>
+                <a href="customer-service.html" class="mobile-nav-link">Customer Service</a>
+                <a href="contact.html" class="mobile-nav-link">Contact Us</a>
+                <a href="size-guide.html" class="mobile-nav-link">Size Guide</a>
+                <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                <a href="terms-of-service.html" class="mobile-nav-link">Terms of Service</a>
+                <a href="privacy-policy.html" class="mobile-nav-link">Privacy Policy</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Featured Brands</h4>
+                <a href="main.html#filter?brand=chanel" class="mobile-nav-link">Chanel</a>
+                <a href="main.html#filter?brand=dior" class="mobile-nav-link">Dior</a>
+                <a href="main.html#filter?brand=creed" class="mobile-nav-link">Creed</a>
+                <a href="main.html#filter?brand=tom-ford" class="mobile-nav-link">Tom Ford</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Account</h4>
+                <a href="auth.html?tab=signin" class="mobile-nav-link logged-out-only">Sign In</a>
+                <a href="auth.html?tab=signup" class="mobile-nav-link logged-out-only">Sign Up</a>
+                <a href="account.html" class="mobile-nav-link logged-in-only" style="display: none;">Profile & Settings</a>
+                <a href="account.html#preferences" class="mobile-nav-link logged-in-only" style="display: none;">Fragrance Preferences</a>
+                <a href="account.html#orders" class="mobile-nav-link logged-in-only" style="display: none;">Order History</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="account-container">
+        <header class="account-header">
+            <div class="account-header-content">
+                <div class="account-header-left">
+                    <h1>My Account</h1>
+                    <p>Manage your profile, preferences, and favorites.</p>
+                </div>
+                <div class="account-header-right">
+                    <div class="user-profile-display">
+                        <img id="header-profile-picture" src="emblem.png" alt="Profile Picture" class="header-profile-img">
+                        <span id="header-user-name" class="header-user-name">Welcome</span>
+                    </div>
+                    <button id="account-logout-btn" class="btn logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="account-content">
+            <!-- Sidebar Navigation -->
+            <aside class="account-sidebar">
+                <nav>
+                    <a href="#profile" class="active"><i class="fas fa-user-circle"></i> Profile & Settings</a>
+                    <a href="#preferences"><i class="fas fa-sliders-h"></i> Fragrance Preferences</a>
+                    <a href="#favorites"><i class="fas fa-heart"></i> My Favorites</a>
+                    <a href="#orders"><i class="fas fa-box"></i> Order History</a>
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <section class="account-main">
+                <!-- Profile & Settings Panel -->
+                <div id="profile" class="account-panel active">
+                    <h2>Profile & Settings</h2>
+                    <form id="profile-form">
+                        <!-- Profile content here -->
+                    </form>
+                </div>
+
+                <!-- Fragrance Preferences Panel -->
+                <div id="preferences" class="account-panel">
+                    <h2>Fragrance Preferences</h2>
+                    <p>Tailor your recommendations by telling us what you love.</p>
+                    <form id="preferences-form">
+                        <div class="form-group">
+                            <label>Favorite Scent Families</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="scent_categories" value="woody"> Woody</label>
+                                <label><input type="checkbox" name="scent_categories" value="floral"> Floral</label>
+                                <label><input type="checkbox" name="scent_categories" value="citrus"> Citrus</label>
+                                <label><input type="checkbox" name="scent_categories" value="oriental"> Oriental</label>
+                                <label><input type="checkbox" name="scent_categories" value="fresh"> Fresh</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="intensity">Preferred Intensity</label>
+                            <select id="intensity" name="intensity">
+                                <option value="">Select...</option>
+                                <option value="light">Light</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="strong">Strong</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="season">Preferred Season</label>
+                            <select id="season" name="season">
+                                <option value="">Select...</option>
+                                <option value="spring">Spring</option>
+                                <option value="summer">Summer</option>
+                                <option value="fall">Fall</option>
+                                <option value="winter">Winter</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="occasion">Preferred Occasion</label>
+                            <select id="occasion" name="occasion">
+                                <option value="">Select...</option>
+                                <option value="daily">Daily Wear</option>
+                                <option value="professional">Professional</option>
+                                <option value="evening">Evening</option>
+                                <option value="special">Special Events</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="budget_range">Budget Range</label>
+                            <select id="budget_range" name="budget_range">
+                                <option value="">Select...</option>
+                                <option value="under-50">Under $50</option>
+                                <option value="50-100">$50 - $100</option>
+                                <option value="100-200">$100 - $200</option>
+                                <option value="over-200">Over $200</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fragrance Sensitivities</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="sensitivities" value="alcohol"> Alcohol</label>
+                                <label><input type="checkbox" name="sensitivities" value="synthetic"> Synthetic Notes</label>
+                                <label><input type="checkbox" name="sensitivities" value="strong-scents"> Strong Scents</label>
+                                <label><input type="checkbox" name="sensitivities" value="none"> None</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn">Save Preferences</button>
+                    </form>
+                </div>
+
+                <!-- My Favorites Panel -->
+                <div id="favorites" class="account-panel">
+                    <h2>My Favorite Fragrances</h2>
+                    <p>Your saved fragrances will appear here.</p>
+                    <div id="favorites-grid" class="favorites-grid">
+                        <!-- Favorites will be loaded here -->
+                    </div>
+                    <div id="favorites-empty-state" style="display: none; text-align: center; padding: 2rem;">
+                        <p>You haven't added any favorites yet.</p>
+                        <a href="main.html" class="btn">Browse Fragrances</a>
+                    </div>
+                </div>
+
+                <!-- Order History Panel -->
+                <div id="orders" class="account-panel">
+                    <h2>Order History</h2>
+                    <p>This feature is coming soon!</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Universal Header Script -->
+    <script src="universal-header-script.js"></script>
+
+    <script src="shared-auth.js"></script>
+    <script src="account.js"></script>
+</body>
+</html>

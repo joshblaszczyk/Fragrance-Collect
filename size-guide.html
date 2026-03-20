@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Size Guide - Fragrance Collect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="size-guide-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- GitHub Pages Performance Optimizations -->
+    <meta http-equiv="Cache-Control" content="public, max-age=3600">
+    <meta http-equiv="Expires" content="3600">
+    <link rel="dns-prefetch" href="//weathered-mud-6ed5.joshuablaszczyk.workers.dev">
+    <link rel="preconnect" href="//weathered-mud-6ed5.joshuablaszczyk.workers.dev" crossorigin>
+    <script>
+        // Force HTTPS redirect
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            location.replace(`https:${location.href.substring(location.protocol.length)}`);
+        }
+        // Use Cloudflare Worker API
+        window.API_BASE = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
+    </script>
+</head>
+<body>
+    <!-- Fragrance Collect Header -->
+    <nav class="fragrance-header">
+        <div class="header-container">
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <a href="main.html" class="brand-logo">
+                    <img src="emblem.png" alt="Fragrance Collect Logo" class="logo-emblem">
+                    <span class="brand-text">Fragrance Collect</span>
+                </a>
+            </div>
+
+            <!-- Desktop Navigation -->
+            <div class="nav-section">
+                <ul class="main-nav">
+                    <li><a href="main.html#home" class="nav-link">Home</a></li>
+                    <li><a href="main.html#viral-tiktok-finds" class="nav-link">Explore</a></li>
+                    <li><a href="main.html#collections" class="nav-link">Collections</a></li>
+                    <li><a href="main.html#top-rated" class="nav-link">Top Picks</a></li>
+                    <li><a href="main.html#personalized" class="nav-link">Personalized</a></li>
+                    <li>
+                        <!-- Menu Button - Opens Mega Menu -->
+                        <div class="menu-dropdown pc-menu-only">
+                            <a href="#" class="nav-link menu-link">
+                                Menu <span class="dropdown-arrow">▾</span>
+                            </a>
+                            <!-- Mega Menu -->
+                            <div class="mega-menu">
+                                <div class="mega-menu-content">
+                                    <!-- Column 1: Main Navigation -->
+                                    <div class="mega-menu-column">
+                                        <h3>Main Navigation</h3>
+                                        <ul>
+                                            <li><a href="main.html#home">Home</a></li>
+                                            <li><a href="main.html#viral-tiktok-finds">Explore</a></li>
+                                            <li><a href="main.html#collections">Collections</a></li>
+                                            <li><a href="main.html#top-rated">Top Picks</a></li>
+                                            <li><a href="main.html#personalized">Personalized</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 2: Shop by Scent -->
+                                    <div class="mega-menu-column">
+                                        <h3>Shop by Scent</h3>
+                                        <ul>
+                                            <li><a href="main.html#filter?scent=floral">Floral</a></li>
+                                            <li><a href="main.html#filter?scent=woody">Woody</a></li>
+                                            <li><a href="main.html#filter?scent=oriental">Oriental</a></li>
+                                            <li><a href="main.html#filter?scent=fresh">Fresh</a></li>
+                                            <li><a href="main.html#filter?scent=citrus">Citrus</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 3: Collections -->
+                                    <div class="mega-menu-column">
+                                        <h3>Collections</h3>
+                                        <ul>
+                                            <li><a href="main.html#collections?type=designer">Designer</a></li>
+                                            <li><a href="main.html#collections?type=niche">Niche</a></li>
+                                            <li><a href="main.html#collections?type=vintage">Vintage</a></li>
+                                            <li><a href="main.html#collections?type=seasonal">Seasonal</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 4: Customer Service -->
+                                    <div class="mega-menu-column">
+                                        <h3>Customer Service</h3>
+                                        <ul>
+                                            <li><a href="customer-service.html">Customer Service</a></li>
+                                            <li><a href="contact.html">Contact Us</a></li>
+                                            <li><a href="size-guide.html">Size Guide</a></li>
+                                            <li><a href="faq.html">FAQ</a></li>
+                                            <li><a href="terms-of-service.html">Terms of Service</a></li>
+                                            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                                        </ul>
+                                    </div>
+                                    <!-- Column 5: Image Carousel -->
+                                    <div class="mega-menu-image">
+                                        <div class="image-carousel">
+                                            <img src="Chanel_IMG.jpg" alt="Chanel Promotion" class="promo-image active">
+                                            <img src="Dior_IMG.jpg" alt="Dior Promotion" class="promo-image">
+                                            <img src="Creed_ING.jpg" alt="Creed Promotion" class="promo-image">
+                                        </div>
+                                        <div class="image-indicators">
+                                            <div class="indicator active" data-index="0"></div>
+                                            <div class="indicator" data-index="1"></div>
+                                            <div class="indicator" data-index="2"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Utility Icons -->
+            <div class="utility-section">
+                <button class="utility-btn search-btn" aria-label="Search">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+
+                <button class="utility-btn favorites-btn" aria-label="Favorites">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </button>
+
+                <div class="profile-dropdown">
+                    <button class="utility-btn profile-btn" aria-label="Profile">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </button>
+
+                    <!-- Profile Dropdown Menu -->
+                    <div class="profile-menu">
+                        <a href="auth.html?tab=signin" class="profile-menu-item logged-out-only">Sign In</a>
+                        <a href="auth.html?tab=signup" class="profile-menu-item logged-out-only">Sign Up</a>
+                        <div class="profile-menu-divider logged-out-only"></div>
+                        <a href="account.html" class="profile-menu-item logged-in-only" style="display: none;">Profile & Settings</a>
+                        <a href="account.html#preferences" class="profile-menu-item logged-in-only" style="display: none;">Fragrance Preferences</a>
+                        <a href="account.html#orders" class="profile-menu-item logged-in-only" style="display: none;">Order History</a>
+                    </div>
+                </div>
+            </div>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="mobile-menu-toggle" aria-label="Toggle Menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Backdrop -->
+    <div class="mobile-nav-backdrop"></div>
+
+    <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav-menu">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-header">
+                    <h3>Navigation</h3>
+                    <button class="mobile-menu-close" aria-label="Close Menu">×</button>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Main Navigation</h4>
+                    <a href="main.html#home" class="mobile-nav-link">Home</a>
+                    <a href="main.html#viral-tiktok-finds" class="mobile-nav-link">Explore</a>
+                    <a href="main.html#collections" class="mobile-nav-link">Collections</a>
+                    <a href="main.html#top-rated" class="mobile-nav-link">Top Picks</a>
+                    <a href="main.html#personalized" class="mobile-nav-link">Personalized</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Shop by Scent</h4>
+                    <a href="main.html#filter?scent=floral" class="mobile-nav-link">Floral</a>
+                    <a href="main.html#filter?scent=woody" class="mobile-nav-link">Woody</a>
+                    <a href="main.html#filter?scent=oriental" class="mobile-nav-link">Oriental</a>
+                    <a href="main.html#filter?scent=fresh" class="mobile-nav-link">Fresh</a>
+                    <a href="main.html#filter?scent=citrus" class="mobile-nav-link">Citrus</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Collections</h4>
+                    <a href="main.html#collections?type=designer" class="mobile-nav-link">Designer</a>
+                    <a href="main.html#collections?type=niche" class="mobile-nav-link">Niche</a>
+                    <a href="main.html#collections?type=vintage" class="mobile-nav-link">Vintage</a>
+                    <a href="main.html#collections?type=seasonal" class="mobile-nav-link">Seasonal</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Customer Service</h4>
+                    <a href="customer-service.html" class="mobile-nav-link">Customer Service</a>
+                    <a href="contact.html" class="mobile-nav-link">Contact Us</a>
+                    <a href="size-guide.html" class="mobile-nav-link">Size Guide</a>
+                    <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                    <a href="terms-of-service.html" class="mobile-nav-link">Terms of Service</a>
+                    <a href="privacy-policy.html" class="mobile-nav-link">Privacy Policy</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Featured Brands</h4>
+                    <a href="main.html#filter?brand=chanel" class="mobile-nav-link">Chanel</a>
+                    <a href="main.html#filter?brand=dior" class="mobile-nav-link">Dior</a>
+                    <a href="main.html#filter?brand=creed" class="mobile-nav-link">Creed</a>
+                    <a href="main.html#filter?brand=tom-ford" class="mobile-nav-link">Tom Ford</a>
+                </div>
+                <div class="mobile-nav-section">
+                    <h4>Account</h4>
+                    <a href="auth.html?tab=signin" class="mobile-nav-link logged-out-only">Sign In</a>
+                    <a href="auth.html?tab=signup" class="mobile-nav-link logged-out-only">Sign Up</a>
+                    <a href="account.html" class="mobile-nav-link logged-in-only" style="display: none;">Profile & Settings</a>
+                    <a href="account.html#preferences" class="mobile-nav-link logged-in-only" style="display: none;">Fragrance Preferences</a>
+                    <a href="account.html#orders" class="mobile-nav-link logged-in-only" style="display: none;">Order History</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Backdrop -->
+    <div class="mobile-nav-backdrop"></div>
+
+    <!-- Mobile Navigation Menu -->
+    <div class="mobile-nav-menu">
+        <div class="mobile-nav-content">
+            <div class="mobile-nav-header">
+                <h3>Navigation</h3>
+                <button class="mobile-menu-close" aria-label="Close Menu">×</button>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Main Navigation</h4>
+                <a href="main.html#home" class="mobile-nav-link">Home</a>
+                <a href="main.html#viral-tiktok-finds" class="mobile-nav-link">Explore</a>
+                <a href="main.html#collections" class="mobile-nav-link">Collections</a>
+                <a href="main.html#top-rated" class="mobile-nav-link">Top Picks</a>
+                <a href="main.html#personalized" class="mobile-nav-link">Personalized</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Shop by Scent</h4>
+                <a href="main.html#filter?scent=floral" class="mobile-nav-link">Floral</a>
+                <a href="main.html#filter?scent=woody" class="mobile-nav-link">Woody</a>
+                <a href="main.html#filter?scent=oriental" class="mobile-nav-link">Oriental</a>
+                <a href="main.html#filter?scent=fresh" class="mobile-nav-link">Fresh</a>
+                <a href="main.html#filter?scent=citrus" class="mobile-nav-link">Citrus</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Collections</h4>
+                <a href="main.html#collections?type=designer" class="mobile-nav-link">Designer</a>
+                <a href="main.html#collections?type=niche" class="mobile-nav-link">Niche</a>
+                <a href="main.html#collections?type=vintage" class="mobile-nav-link">Vintage</a>
+                <a href="main.html#collections?type=seasonal" class="mobile-nav-link">Seasonal</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Customer Service</h4>
+                <a href="customer-service.html" class="mobile-nav-link">Customer Service</a>
+                <a href="contact.html" class="mobile-nav-link">Contact Us</a>
+                <a href="size-guide.html" class="mobile-nav-link">Size Guide</a>
+                <a href="faq.html" class="mobile-nav-link">FAQ</a>
+                <a href="terms-of-service.html" class="mobile-nav-link">Terms of Service</a>
+                <a href="privacy-policy.html" class="mobile-nav-link">Privacy Policy</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Featured Brands</h4>
+                <a href="main.html#filter?brand=chanel" class="mobile-nav-link">Chanel</a>
+                <a href="main.html#filter?brand=dior" class="mobile-nav-link">Dior</a>
+                <a href="main.html#filter?brand=creed" class="mobile-nav-link">Creed</a>
+                <a href="main.html#filter?brand=tom-ford" class="mobile-nav-link">Tom Ford</a>
+            </div>
+            <div class="mobile-nav-section">
+                <h4>Account</h4>
+                <a href="auth.html?tab=signin" class="mobile-nav-link logged-out-only">Sign In</a>
+                <a href="auth.html?tab=signup" class="mobile-nav-link logged-out-only">Sign Up</a>
+                <a href="account.html" class="mobile-nav-link logged-in-only" style="display: none;">Profile & Settings</a>
+                <a href="account.html#preferences" class="mobile-nav-link logged-in-only" style="display: none;">Fragrance Preferences</a>
+                <a href="account.html#orders" class="mobile-nav-link logged-in-only" style="display: none;">Order History</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Size Guide Header -->
+    <section class="size-guide-header">
+        <div class="container">
+            <div class="size-guide-header-content">
+                <h1 class="size-guide-title">Fragrance Size Guide</h1>
+                <div class="size-guide-title-accent"></div>
+            </div>
+            <p class="size-guide-subtitle">Understanding fragrance sizes and choosing the perfect amount for your needs</p>
+        </div>
+    </section>
+
+    <!-- Size Categories -->
+    <section class="size-categories">
+        <div class="container">
+            <h2 class="section-title">Fragrance Size Categories</h2>
+            <div class="size-grid">
+                <div class="size-card">
+                    <div class="size-icon">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <h3>Sample Size</h3>
+                    <div class="size-details">
+                        <p class="size-amount">1-5 ml</p>
+                        <p class="size-description">Perfect for testing new fragrances before committing to a full bottle.</p>
+                    </div>
+                    <ul class="size-features">
+                        <li><i class="fas fa-check"></i> 1-3 applications</li>
+                        <li><i class="fas fa-check"></i> Travel-friendly</li>
+                        <li><i class="fas fa-check"></i> Cost-effective testing</li>
+                    </ul>
+                </div>
+
+                <div class="size-card">
+                    <div class="size-icon">
+                        <i class="fas fa-flask"></i>
+                    </div>
+                    <h3>Mini Size</h3>
+                    <div class="size-details">
+                        <p class="size-amount">10-15 ml</p>
+                        <p class="size-description">Ideal for travel and occasional use. Great for limited edition fragrances.</p>
+                    </div>
+                    <ul class="size-features">
+                        <li><i class="fas fa-check"></i> 10-15 applications</li>
+                        <li><i class="fas fa-check"></i> TSA compliant</li>
+                        <li><i class="fas fa-check"></i> Compact storage</li>
+                    </ul>
+                </div>
+
+                <div class="size-card featured">
+                    <div class="size-icon">
+                        <i class="fas fa-wine-bottle"></i>
+                    </div>
+                    <div class="featured-badge">Most Popular</div>
+                    <h3>Standard Size</h3>
+                    <div class="size-details">
+                        <p class="size-amount">50-100 ml</p>
+                        <p class="size-description">The most common size for daily wear. Perfect balance of value and longevity.</p>
+                    </div>
+                    <ul class="size-features">
+                        <li><i class="fas fa-check"></i> 50-100 applications</li>
+                        <li><i class="fas fa-check"></i> 6-12 months of use</li>
+                        <li><i class="fas fa-check"></i> Best value per ml</li>
+                    </ul>
+                </div>
+
+                <div class="size-card">
+                    <div class="size-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <h3>Large Size</h3>
+                    <div class="size-details">
+                        <p class="size-amount">125-200 ml</p>
+                        <p class="size-description">For fragrance enthusiasts who want extended use of their favorite scents.</p>
+                    </div>
+                    <ul class="size-features">
+                        <li><i class="fas fa-check"></i> 125-200 applications</li>
+                        <li><i class="fas fa-check"></i> 1-2 years of use</li>
+                        <li><i class="fas fa-check"></i> Premium presentation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Size Conversion Chart -->
+    <section class="conversion-section">
+        <div class="container">
+            <h2 class="section-title">Size Conversion Chart</h2>
+            <div class="conversion-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Size</th>
+                            <th>Milliliters (ml)</th>
+                            <th>Fluid Ounces (fl oz)</th>
+                            <th>Applications</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Sample</td>
+                            <td>1-5 ml</td>
+                            <td>0.03-0.17 fl oz</td>
+                            <td>1-3</td>
+                            <td>1-2 days</td>
+                        </tr>
+                        <tr>
+                            <td>Mini</td>
+                            <td>10-15 ml</td>
+                            <td>0.34-0.51 fl oz</td>
+                            <td>10-15</td>
+                            <td>2-4 weeks</td>
+                        </tr>
+                        <tr>
+                            <td>Standard</td>
+                            <td>50-100 ml</td>
+                            <td>1.69-3.38 fl oz</td>
+                            <td>50-100</td>
+                            <td>6-12 months</td>
+                        </tr>
+                        <tr>
+                            <td>Large</td>
+                            <td>125-200 ml</td>
+                            <td>4.23-6.76 fl oz</td>
+                            <td>125-200</td>
+                            <td>1-2 years</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Usage Guidelines -->
+    <section class="usage-section">
+        <div class="container">
+            <h2 class="section-title">Usage Guidelines</h2>
+            <div class="usage-grid">
+                <div class="usage-card">
+                    <div class="usage-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <h3>Daily Wear</h3>
+                    <p>For everyday use, 1-2 sprays are typically sufficient. A 50ml bottle will last approximately 6-8 months with daily use.</p>
+                    <div class="usage-tip">
+                        <strong>Tip:</strong> Apply to pulse points for longer-lasting fragrance.
+                    </div>
+                </div>
+
+                <div class="usage-card">
+                    <div class="usage-icon">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <h3>Occasional Wear</h3>
+                    <p>For special occasions or weekend wear, you might use 2-3 sprays. A 50ml bottle can last 1-2 years with occasional use.</p>
+                    <div class="usage-tip">
+                        <strong>Tip:</strong> Layer with matching body products for enhanced longevity.
+                    </div>
+                </div>
+
+                <div class="usage-card">
+                    <div class="usage-icon">
+                        <i class="fas fa-plane"></i>
+                    </div>
+                    <h3>Travel Use</h3>
+                    <p>For travel, consider 10-15ml sizes which are TSA compliant and perfect for short trips. Mini sizes are ideal for carry-on luggage.</p>
+                    <div class="usage-tip">
+                        <strong>Tip:</strong> Store in a cool, dry place to preserve fragrance integrity.
+                    </div>
+                </div>
+
+                <div class="usage-card">
+                    <div class="usage-icon">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <h3>Gift Giving</h3>
+                    <p>Standard sizes (50-100ml) are perfect for gifts. They offer good value and are universally appreciated by fragrance lovers.</p>
+                    <div class="usage-tip">
+                        <strong>Tip:</strong> Consider the recipient's lifestyle when choosing size.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Size Calculator -->
+    <section class="calculator-section">
+        <div class="container">
+            <h2 class="section-title">Fragrance Size Calculator</h2>
+            <div class="calculator-container">
+                <div class="calculator-form">
+                    <h3>Find Your Perfect Size</h3>
+                    <div class="form-group">
+                        <label for="usage-frequency">How often do you wear fragrance?</label>
+                        <select id="usage-frequency" class="calculator-select">
+                            <option value="">Select frequency</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">2-3 times per week</option>
+                            <option value="occasional">Occasionally (special events)</option>
+                            <option value="rarely">Rarely (once a month)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sprays-per-use">How many sprays per use?</label>
+                        <select id="sprays-per-use" class="calculator-select">
+                            <option value="">Select sprays</option>
+                            <option value="1">1 spray</option>
+                            <option value="2">2 sprays</option>
+                            <option value="3">3 sprays</option>
+                            <option value="4">4+ sprays</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duration">How long do you want it to last?</label>
+                        <select id="duration" class="calculator-select">
+                            <option value="">Select duration</option>
+                            <option value="3months">3 months</option>
+                            <option value="6months">6 months</option>
+                            <option value="1year">1 year</option>
+                            <option value="2years">2 years</option>
+                        </select>
+                    </div>
+                    
+                    <button class="calculate-btn" id="calculate-btn">
+                        <i class="fas fa-calculator"></i>
+                        Calculate Recommended Size
+                    </button>
+                </div>
+                
+                <div class="calculator-result" id="calculator-result">
+                    <div class="result-placeholder">
+                        <i class="fas fa-calculator"></i>
+                        <p>Fill in the form to get your personalized size recommendation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 class="footer-title">Fragrance Collect</h3>
+                    <p>Discover the world's finest fragrances curated for the discerning connoisseur. Experience luxury, elegance, and sophistication in every scent.</p>
+                    <div class="social-links">
+                        <a href="https://www.tiktok.com/@the.cologne.archi" class="social-link" target="_blank" rel="noopener noreferrer"><i class="fab fa-tiktok"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="main.html">Home</a></li>
+                        <li><a href="main.html#favorites">Favorites</a></li>
+                        <li><a href="main.html#collections">Collections</a></li>
+                        <li><a href="main.html#top-rated">Top Rated</a></li>
+                        <li><a href="main.html#shop">Shop</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Customer Service</h4>
+                    <ul class="footer-links">
+                        <li><a href="customer-service.html">Customer Service</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                        <li><a href="size-guide.html">Size Guide</a></li>
+                        <li><a href="faq.html">FAQ</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <div class="contact-info">
+                        <p><i class="fas fa-envelope"></i> info@fragrancecollect.com</p>
+                        <p><i class="fas fa-envelope"></i> support@fragrancecollect.com</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Fragrance Collect. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Universal Header Script -->
+    <script src="universal-header-script.js"></script>
+
+    <script src="shared-auth.js"></script>
+    <script src="size-guide-script.js"></script>
+</body>
+</html> 
