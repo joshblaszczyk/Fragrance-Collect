@@ -792,7 +792,7 @@ async function handleProductsRequest(request, url, env) {
 
   } catch (error) {
     console.error('Error fetching products:', error);
-    return jsonResponse({ error: 'Failed to fetch products from stores', details: error.message }, 500, getSecurityHeaders(request.headers.get('Origin')));
+    return jsonResponse({ error: 'Failed to fetch products from partner retailers', details: error.message }, 500, getSecurityHeaders(request.headers.get('Origin')));
   }
 }
 
@@ -1281,7 +1281,7 @@ async function handleContactForm(request, env) {
         const subjectMap = {
             'general': 'General Inquiry',
             'product': 'Product Information Request',
-            'order': 'Order Status Inquiry',
+            'order': 'Retailer / Purchase Question',
             'feedback': 'Feedback & Suggestions',
             'partnership': 'Partnership Opportunity'
         };
@@ -1428,7 +1428,7 @@ async function sendContactEmail({ name, email, subject, message }, env) {
         const subjectMap = {
             'general': 'General Inquiry',
             'product': 'Product Information Request',
-            'order': 'Order Status Inquiry',
+            'order': 'Retailer / Purchase Question',
             'feedback': 'Feedback & Suggestions',
             'partnership': 'Partnership Opportunity'
         };

@@ -806,8 +806,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeDropdowns();
     addEventListeners();
 
-    setupStripe();
-    
     initializeFilters();
 
     // Load products on initial page load
@@ -912,7 +910,7 @@ function mapProductsDataToItems(data) {
             shippingCost: p.shippingCost, // The worker now provides this as null
             advertiser: SecurityUtils.escapeHtml(p.advertiser || 'Unknown'),
             category: SecurityUtils.escapeHtml(p.category || 'Fragrance'),
-            availability: 'In Stock',
+            availability: SecurityUtils.escapeHtml(p.availability || 'Check retailer for availability'),
             currency: SecurityUtils.escapeHtml(p.currency || 'USD'),
             isReal: true
         }));
@@ -1348,9 +1346,9 @@ function changePage(page) {
 
 // Create product card HTML with XSS protection
 function formatShipping(perfume) {
-    if (perfume.shippingCost === 0) return { text: 'Free shipping', cls: 'free' };
-    if (typeof perfume.shippingCost === 'number') return { text: `$${perfume.shippingCost.toFixed(2)} shipping`, cls: '' };
-    return { text: 'Unknown shipping', cls: 'unknown' };
+    if (perfume.shippingCost === 0) return { text: 'Free shipping at retailer', cls: 'free' };
+    if (typeof perfume.shippingCost === 'number') return { text: `+$${perfume.shippingCost.toFixed(2)} shipping at retailer`, cls: '' };
+    return { text: 'Shipping varies by retailer', cls: 'unknown' };
 }
 
 function createProductCard(perfume) {
@@ -1398,7 +1396,7 @@ function createProductCard(perfume) {
             </div>
             <div class="product-meta">
                 <div class="product-shipping ${shipping.cls}">${shipping.text}</div>
-                <a href="${perfume.buyUrl}" target="_blank" rel="nofollow sponsored noopener" class="btn-view-deal">Shop Now <i class="fas fa-arrow-right"></i></a>
+                <a href="${perfume.buyUrl}" target="_blank" rel="nofollow sponsored noopener" class="btn-view-deal">View Deal <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     `;
@@ -1458,7 +1456,7 @@ function createPerfumeCard(perfume) {
             </div>
             <div class="product-meta">
                 <div class="product-shipping ${shipping.cls}">${shipping.text}</div>
-                <a href="${perfume.productUrl}" target="_blank" rel="nofollow sponsored noopener" class="btn-view-deal">Shop Now <i class="fas fa-arrow-right"></i></a>
+                <a href="${perfume.productUrl}" target="_blank" rel="nofollow sponsored noopener" class="btn-view-deal">View Deal <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     `;
@@ -2273,7 +2271,7 @@ function showPerfumeDetails(perfume) {
         
         if (modalBtn) {
             if (perfume.buyUrl) {
-                modalBtn.textContent = '✨ Visit Store & Shop Now ✨';
+                modalBtn.textContent = 'View Deal';
                 modalBtn.onclick = () => window.open(perfume.buyUrl, '_blank', 'noopener,nofollow');
                 modalBtn.style.display = 'inline-block';
             } else {
@@ -3098,8 +3096,3 @@ async function getPersonalizedRecommendations() {
 }
 
 // --- End Personalized Recommendations ---
-
-function setupStripe() {
-    // Check if Stripe is enabled in config
-    // ... existing code ...
-}

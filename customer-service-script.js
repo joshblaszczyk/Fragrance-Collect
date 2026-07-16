@@ -111,16 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Redirect to contact page
                     window.location.href = 'contact.html';
                     break;
-                case 'Track Order':
-                    // Could open order tracking modal
-                    console.log('Opening order tracking...');
-                    showOrderTrackingModal();
-                    break;
-                case 'Return Policy':
-                    // Service no longer available
-                    console.log('Return policy service is no longer available...');
-                    showInfoMessage('Return policy service is no longer available.');
-                    break;
                 case 'Book Consultation':
                     // Redirect to contact page with consultation subject
                     window.location.href = 'contact.html?subject=consultation';
@@ -184,42 +174,42 @@ function getServiceDetails(serviceTitle) {
     switch(serviceTitle) {
         case 'Gift Services':
             return `
-                <h3>Comprehensive Gift Services</h3>
-                <p>Make every occasion special with our premium gift services:</p>
+                <h3>Gifting Made Easy</h3>
+                <p>Many of the retailers we link to offer gift options at checkout. Here's what to look for when buying a fragrance as a gift:</p>
                 <ul>
-                    <li><strong>Luxury Gift Wrapping:</strong> Elegant packaging with satin ribbons and gold accents</li>
-                    <li><strong>Personalized Messages:</strong> Custom cards with your heartfelt message</li>
-                    <li><strong>Special Packaging:</strong> Premium boxes and presentation materials</li>
-                    <li><strong>Gift Certificates:</strong> Perfect for those who love to choose their own fragrance</li>
-                    <li><strong>Rush Delivery:</strong> Express shipping for last-minute gifts</li>
+                    <li><strong>Gift Wrapping:</strong> Most luxury retailers offer premium gift wrapping — select it on their checkout page</li>
+                    <li><strong>Personalized Messages:</strong> Look for a gift-message field when you complete your order at the retailer</li>
+                    <li><strong>Special Packaging:</strong> Many brands ship in signature presentation boxes</li>
+                    <li><strong>Gift Sets & Certificates:</strong> We help you find gift sets and retailer gift cards worth comparing</li>
+                    <li><strong>Delivery Options:</strong> Compare express and standard shipping across retailers before you buy</li>
                 </ul>
-                <p><strong>Pricing:</strong> Gift wrapping starts at $15, personalized messages are complimentary.</p>
+                <p><strong>Tip:</strong> Gift wrapping and delivery options vary by retailer — check the details on their site before completing your purchase.</p>
             `;
         case 'Personal Consultation':
             return `
                 <h3>Expert Fragrance Consultation</h3>
                 <p>Discover your perfect signature scent with our certified fragrance experts:</p>
                 <ul>
-                    <li><strong>One-on-One Sessions:</strong> Private consultations in our luxury showroom</li>
                     <li><strong>Virtual Consultations:</strong> Online sessions via video call</li>
                     <li><strong>Fragrance Profiling:</strong> Detailed analysis of your preferences and lifestyle</li>
                     <li><strong>Seasonal Recommendations:</strong> Curated selections for different occasions</li>
+                    <li><strong>Retailer Guidance:</strong> We help you find the best retailer and price once you've chosen a scent</li>
                     <li><strong>Follow-up Support:</strong> Ongoing assistance with your fragrance journey</li>
                 </ul>
-                <p><strong>Duration:</strong> 45-60 minutes | <strong>Cost:</strong> $75 (credited toward purchase)</p>
+                <p><strong>Duration:</strong> 45-60 minutes | <strong>Cost:</strong> $75 (a one-time consultation fee)</p>
             `;
         case 'Authenticity Guarantee':
             return `
-                <h3>100% Authenticity Promise</h3>
-                <p>Every fragrance in our collection is guaranteed authentic:</p>
+                <h3>Shop With Confidence</h3>
+                <p>We only list fragrances from retailers we've vetted as authorized, authentic sellers:</p>
                 <ul>
-                    <li><strong>Authorized Distributors:</strong> Direct partnerships with luxury brands</li>
-                    <li><strong>Quality Assurance:</strong> Rigorous testing and verification processes</li>
-                    <li><strong>Batch Verification:</strong> Every product is traceable to its source</li>
-                    <li><strong>Money-Back Guarantee:</strong> Full refund if authenticity is ever questioned</li>
-                    <li><strong>Expert Verification:</strong> Certified fragrance experts validate every product</li>
+                    <li><strong>Vetted Retailers:</strong> We feature retailers that are authorized to sell the brands they carry</li>
+                    <li><strong>Authorized Sources:</strong> Our links lead to sellers who source directly from brands or authorized distributors</li>
+                    <li><strong>Retailer Guarantees:</strong> The retailers we list back their products with their own authenticity guarantees</li>
+                    <li><strong>Transparent Listings:</strong> Every listing shows the retailer so you always know who you're buying from</li>
+                    <li><strong>Price Comparison:</strong> Compare offers across trusted sellers before you buy</li>
                 </ul>
-                <p><strong>Our Commitment:</strong> We stake our reputation on every fragrance we sell.</p>
+                <p><strong>Our Commitment:</strong> We only surface listings from reputable, authorized retailers, so you can shop with confidence wherever you choose to buy.</p>
             `;
         default:
             return `<p>Detailed information about ${serviceTitle} will be available soon.</p>`;
@@ -229,89 +219,6 @@ function getServiceDetails(serviceTitle) {
 // Show authenticity promise modal
 function showAuthenticityPromise() {
     showServiceDetails('Authenticity Guarantee');
-}
-
-// Show order tracking modal
-function showOrderTrackingModal() {
-    const modal = document.createElement('div');
-    modal.className = 'service-modal';
-    modal.innerHTML = `
-        <div class="service-modal-content">
-            <span class="service-modal-close">&times;</span>
-            <h2>Order Tracking</h2>
-            <div class="service-modal-body">
-                <p>Enter your order number to track your shipment:</p>
-                <div class="tracking-form">
-                    <input type="text" id="order-number" placeholder="Enter order number (e.g., FC-12345)" class="tracking-input">
-                    <button class="tracking-btn" onclick="trackOrder()">Track Order</button>
-                </div>
-                <div id="tracking-result" class="tracking-result"></div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Close modal functionality
-    const closeBtn = modal.querySelector('.service-modal-close');
-    closeBtn.onclick = function() {
-        document.body.removeChild(modal);
-    };
-    
-    // Close modal when clicking outside
-    modal.onclick = function(e) {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    };
-    
-    // Add animation
-    setTimeout(() => {
-        modal.style.opacity = '1';
-        modal.querySelector('.service-modal-content').style.transform = 'scale(1)';
-    }, 10);
-}
-
-// Track order function
-function trackOrder() {
-    const orderNumber = document.getElementById('order-number').value.trim();
-    const resultDiv = document.getElementById('tracking-result');
-    
-    if (!orderNumber) {
-        resultDiv.innerHTML = '<p class="error">Please enter an order number.</p>';
-        return;
-    }
-    
-    // Simulate order tracking
-    const mockTrackingData = {
-        'FC-12345': {
-            status: 'Delivered',
-            location: 'Delivered to recipient',
-            date: '2025-01-15',
-            estimated: '2025-01-14'
-        },
-        'FC-67890': {
-            status: 'In Transit',
-            location: 'Out for delivery',
-            date: '2025-01-16',
-            estimated: '2025-01-16'
-        }
-    };
-    
-    if (mockTrackingData[orderNumber]) {
-        const tracking = mockTrackingData[orderNumber];
-        resultDiv.innerHTML = `
-            <div class="tracking-info">
-                <h3>Order: ${orderNumber}</h3>
-                <p><strong>Status:</strong> <span class="status-${tracking.status.toLowerCase().replace(' ', '-')}">${tracking.status}</span></p>
-                <p><strong>Location:</strong> ${tracking.location}</p>
-                <p><strong>Last Update:</strong> ${tracking.date}</p>
-                <p><strong>Estimated Delivery:</strong> ${tracking.estimated}</p>
-            </div>
-        `;
-    } else {
-        resultDiv.innerHTML = '<p class="error">Order not found. Please check your order number and try again.</p>';
-    }
 }
 
 // Show info message

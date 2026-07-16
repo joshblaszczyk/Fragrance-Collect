@@ -1055,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <p class="favorite-brand">${advertiserName}</p>
                                 <p class="favorite-price">${price}</p>
                                 <div class="favorite-actions">
-                                    <a href="${productUrl}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm">Shop Now</a>
+                                    <a href="${productUrl}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm">View Deal</a>
                                     <button class="btn btn-sm btn-secondary" onclick="removeFavorite('${fav.fragrance_id}', this)">
                                         <i class="fas fa-heart-broken"></i> Remove
                                     </button>
