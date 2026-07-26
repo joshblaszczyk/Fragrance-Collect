@@ -2,10 +2,22 @@ name = "weathered-mud-6ed5"
 main = "src/integrated-worker.js"
 compatibility_date = "2025-08-07"
 
+# Both public hostnames terminate on this Worker. The Worker permanently
+# redirects www to the canonical apex before serving static or API traffic.
+[[routes]]
+pattern = "fragrancecollect.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.fragrancecollect.com"
+custom_domain = true
+
 [assets]
 directory = "../dist"
 binding = "ASSETS"
-run_worker_first = ["/api/*", "/main.html"]
+# The canonical-host redirect and response-security policy must run for every
+# request before the Worker delegates public files to the asset binding.
+run_worker_first = true
 not_found_handling = "404-page"
 
 # Add D1 database binding for authentication

@@ -141,6 +141,8 @@ The release order is intentionally strict:
 
 DNS cutover is an external prerequisite and is never changed by the workflow. The domain currently uses registrar nameservers, so first create and review the Cloudflare zone, export the old DNS zone, and reproduce every web and email record—including MX, SPF, DKIM, DMARC, verification, and subdomain records. Confirm Universal SSL is active, bind both the apex and intended `www` behavior to the production Worker, verify Google OAuth origins and Resend domain records, and only then update nameservers at the registrar. DNSSEC must be transitioned according to the registrar and Cloudflare instructions; do not leave a stale DS record. Expect nameserver propagation and keep the previous zone export available.
 
+For the first cutover, follow [DNS_CUTOVER.md](DNS_CUTOVER.md) before merging the release PR. GitHub Pages currently publishes from `main`, while the release intentionally removes its `CNAME`; merging before the Cloudflare zone, TLS, and rollback records are ready could interrupt the live site. The Worker configuration binds both public hostnames and permanently redirects `www` to the canonical apex.
+
 Do not acknowledge `READY_OR_ALREADY_CUT_OVER` until the Cloudflare zone, TLS certificate, custom domain, and email DNS have been independently checked. The deploy workflow does not create or repair any of them.
 
 ### Emergency cutover and rollback

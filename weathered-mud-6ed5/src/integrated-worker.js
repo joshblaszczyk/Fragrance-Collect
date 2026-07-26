@@ -69,11 +69,25 @@ const RELEASE_CAPABILITIES = Object.freeze({
 
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (url.hostname === 'www.fragrancecollect.com') {
+      url.protocol = 'https:';
+      url.hostname = 'fragrancecollect.com';
+      url.port = '';
+      return new Response(null, {
+        status: 308,
+        headers: {
+          ...securityHeaders(request.headers.get('Origin'), env),
+          'Cache-Control': 'public, max-age=3600',
+          Location: url.toString()
+        }
+      });
+    }
+
     if (request.method === 'OPTIONS') {
       return handleOptions(request, env);
     }
 
-    const url = new URL(request.url);
     const path = url.pathname;
 
     if (path === '/main.html' && (request.method === 'GET' || request.method === 'HEAD')) {
@@ -212,9 +226,50 @@ function getConfiguredOrigins(env) {
     return env.ALLOWED_ORIGINS || env.ALLOWED_ORIGIN || '';
 }
 
+function environmentFlagEnabled(value) {
+    return value === true || String(value || '').trim().toLowerCase() === 'true';
+}
+
+function localOriginsEnabled(env) {
+    return environmentFlagEnabled(env.ALLOW_LOCAL_ORIGINS) || env.ENVIRONMENT === 'development';
+}
+
+function isExplicitLocalRuntimeRequest(request, env) {
+    if (!localOriginsEnabled(env) || request.headers.get('CF-Connecting-IP')) return false;
+    try {
+      const requestUrl = new URL(request.url);
+      if (requestUrl.protocol !== 'http:') return false;
+      if (['localhost', '127.0.0.1', '[::1]'].includes(requestUrl.hostname)) return true;
+
+      return String(getConfiguredOrigins(env)).split(',').some((value) => {
+        try {
+          const configured = new URL(value.trim());
+          return configured.protocol === 'https:'
+            && configured.hostname === requestUrl.hostname
+            && configured.port === requestUrl.port;
+        } catch {
+          return false;
+        }
+      });
+    } catch {
+      return false;
+    }
+}
+
+function isWranglerRewrittenLocalOrigin(request, env) {
+    if (!isExplicitLocalRuntimeRequest(request, env)) return false;
+    try {
+      const origin = new URL(request.headers.get('Origin'));
+      const requestUrl = new URL(request.url);
+      return origin.protocol === 'http:' && origin.host === requestUrl.host;
+    } catch {
+      return false;
+    }
+}
+
 function securityHeaders(origin, env) {
     return buildSecurityHeaders(origin, getConfiguredOrigins(env), {
-      allowLocalOrigins: env.ALLOW_LOCAL_ORIGINS === 'true' || env.ENVIRONMENT === 'development'
+      allowLocalOrigins: localOriginsEnabled(env)
     });
 }
 
@@ -368,13 +423,14 @@ function accountPrincipal(value) {
 }
 
 function isLocalEmailVerificationBypass(request, env) {
-    if (env.LOCAL_EMAIL_VERIFICATION_BYPASS !== 'true') return false;
+    if (!environmentFlagEnabled(env.LOCAL_EMAIL_VERIFICATION_BYPASS)) return false;
     try {
       const hostname = new URL(request.url).hostname;
-      return hostname === 'localhost' || hostname === '127.0.0.1';
+      if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
     } catch {
       return false;
     }
+    return isExplicitLocalRuntimeRequest(request, env);
 }
 
 /**
@@ -526,15 +582,13 @@ function compareHashes(a, b) {
 
 function validateSiteOrigin(request, env) {
     return isOriginAllowed(request.headers.get('Origin'), getConfiguredOrigins(env), {
-      allowLocalOrigins: env.ALLOW_LOCAL_ORIGINS === 'true' || env.ENVIRONMENT === 'development'
-    });
+      allowLocalOrigins: localOriginsEnabled(env)
+    }) || isWranglerRewrittenLocalOrigin(request, env);
 }
 
 function handleOptions(request, env) {
   const origin = request.headers.get('Origin');
-  if (!isOriginAllowed(origin, getConfiguredOrigins(env), {
-    allowLocalOrigins: env.ALLOW_LOCAL_ORIGINS === 'true' || env.ENVIRONMENT === 'development'
-  })) {
+  if (!validateSiteOrigin(request, env)) {
     return new Response(null, { status: 403, headers: securityHeaders(null, env) });
   }
   return new Response(null, { status: 204, headers: securityHeaders(origin, env) });

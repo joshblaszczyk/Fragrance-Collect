@@ -1,4 +1,5 @@
 const origin = String(process.env.PRODUCTION_SITE_ORIGIN || 'https://fragrancecollect.com').replace(/\/$/, '');
+const productionHostname = new URL(origin).hostname;
 const paths = ['/', '/auth', '/account', '/admin', '/assets/images/emblem-96.webp'];
 const privatePaths = new Set(['/auth', '/account', '/admin']);
 const required = [
@@ -51,6 +52,19 @@ const health = await fetch(`${origin}/api/health`, {
 }).catch(() => null);
 if (!health?.ok) failures.push('/api/health is not healthy on the same production origin');
 else if (!/application\/json/i.test(health.headers.get('content-type') || '')) failures.push('/api/health did not return JSON');
+
+if (productionHostname === 'fragrancecollect.com') {
+  const wwwResponse = await fetch('https://www.fragrancecollect.com/cutover-check?source=www', {
+    redirect: 'manual',
+    signal: AbortSignal.timeout(15_000),
+    headers: { Accept: 'text/html' }
+  }).catch(() => null);
+  const wwwLocation = wwwResponse?.headers.get('location') || '';
+  if (wwwResponse?.status !== 308
+    || wwwLocation !== 'https://fragrancecollect.com/cutover-check?source=www') {
+    failures.push('www does not permanently redirect to the canonical apex while preserving the path and query');
+  }
+}
 
 if (failures.length) {
   console.error('Production Cloudflare header/cutover check failed:');

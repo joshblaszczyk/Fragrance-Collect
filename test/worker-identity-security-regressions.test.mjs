@@ -248,8 +248,45 @@ test('legacy /main.html requests redirect to the canonical root without dropping
   ), {}, {});
   assert.equal(response.status, 301);
   assert.equal(response.headers.get('Location'), 'https://fragrancecollect.com/?q=chanel&brand=Chanel');
-  assert.match(wranglerSource, /run_worker_first\s*=\s*\["\/api\/\*", "\/main\.html"\]/);
+  assert.match(wranglerSource, /run_worker_first\s*=\s*true/);
   assert.doesNotMatch(wranglerSource, /LOCAL_EMAIL_VERIFICATION_BYPASS|ALLOW_LOCAL_ORIGINS/);
+});
+
+test('www traffic redirects permanently to the canonical apex and both hostnames are bound', async () => {
+  const response = await integratedWorker.fetch(new Request(
+    'https://www.fragrancecollect.com/account?tab=favorites',
+    { method: 'GET' }
+  ), {}, {});
+  assert.equal(response.status, 308);
+  assert.equal(response.headers.get('Location'), 'https://fragrancecollect.com/account?tab=favorites');
+  assert.match(response.headers.get('Strict-Transport-Security') || '', /max-age=31536000/);
+  assert.match(wranglerSource, /pattern\s*=\s*"fragrancecollect\.com"\s*\ncustom_domain\s*=\s*true/);
+  assert.match(wranglerSource, /pattern\s*=\s*"www\.fragrancecollect\.com"\s*\ncustom_domain\s*=\s*true/);
+  assert.match(wranglerSource, /run_worker_first\s*=\s*true/);
+});
+
+test('local Wrangler custom-domain rewriting stays explicitly local and fails closed at the edge', async () => {
+  const localEnvironment = {
+    ALLOWED_ORIGIN: 'https://fragrancecollect.com',
+    ALLOW_LOCAL_ORIGINS: 'true'
+  };
+  const localResponse = await integratedWorker.fetch(new Request(
+    'http://fragrancecollect.com/api/signup/email',
+    { method: 'OPTIONS', headers: { Origin: 'http://fragrancecollect.com' } }
+  ), localEnvironment, {});
+  assert.equal(localResponse.status, 204);
+
+  const edgeResponse = await integratedWorker.fetch(new Request(
+    'http://fragrancecollect.com/api/signup/email',
+    {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'http://fragrancecollect.com',
+        'CF-Connecting-IP': '203.0.113.10'
+      }
+    }
+  ), localEnvironment, {});
+  assert.equal(edgeResponse.status, 403);
 });
 
 test('password signup requires mailbox proof, normalizes email, bounds sessions, and deletion requires owner reauthentication', async () => {
