@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>CJ Operations - Fragrance Collect</title>
+    <meta name="description" content="Private CJ commerce operations and data quality reporting for Fragrance Collect.">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="theme-color" content="#0b0b0d">
+    <link rel="canonical" href="https://fragrancecollect.com/admin.html">
+    <link rel="icon" type="image/webp" href="assets/images/emblem-96.webp">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="design-system.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <script src="site-config.js"></script>
+</head>
+<body class="admin-body">
+    <a class="skip-link" href="#main-content">Skip to dashboard</a>
+    <header class="admin-topbar">
+        <a href="/" class="admin-brand" aria-label="Fragrance Collect home">
+            <img src="assets/images/emblem-96.webp" alt="" width="44" height="44">
+            <span>Fragrance Collect</span>
+        </a>
+        <div class="admin-context"><span>Private workspace</span><a href="account.html">My account</a></div>
+    </header>
+
+    <main id="main-content" class="admin-main" tabindex="-1">
+        <header class="admin-page-header">
+            <div>
+                <p class="page-eyebrow">Commerce operations</p>
+                <h1>CJ performance and data quality</h1>
+                <p>Private reporting from official CJ commission, program, advertiser, and catalog services. Shopper-facing ranking never uses these commission values.</p>
+            </div>
+            <div class="admin-header-meta">
+                <span id="admin-updated">Not loaded</span>
+                <span class="admin-live-mark"><i aria-hidden="true"></i> Protected server data</span>
+            </div>
+        </header>
+
+        <section id="admin-access-state" class="admin-access-state" role="alert" hidden></section>
+
+        <div id="admin-dashboard" hidden>
+            <div class="admin-toolbar">
+                <nav class="admin-tabs" aria-label="CJ dashboard sections" role="tablist">
+                    <button type="button" id="admin-tab-overview" class="is-active" data-admin-tab="overview" role="tab" aria-controls="admin-overview" aria-selected="true">Overview</button>
+                    <button type="button" id="admin-tab-terms" data-admin-tab="terms" role="tab" aria-controls="admin-terms" aria-selected="false" tabindex="-1">Program terms</button>
+                    <button type="button" id="admin-tab-advertisers" data-admin-tab="advertisers" role="tab" aria-controls="admin-advertisers" aria-selected="false" tabindex="-1">Advertisers</button>
+                </nav>
+                <div class="admin-actions">
+                    <label for="report-range">Reporting range</label>
+                    <select id="report-range">
+                        <option value="7">Last 7 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="365">Last year</option>
+                    </select>
+                    <button type="button" id="refresh-report">Refresh report</button>
+                    <button type="button" id="sync-cj" class="admin-secondary-action">Sync reference data</button>
+                </div>
+            </div>
+
+            <section class="admin-panel is-active" id="admin-overview" data-admin-panel="overview" role="tabpanel" aria-labelledby="admin-tab-overview">
+                <h2 id="overview-heading" class="visually-hidden">CJ overview</h2>
+                <div class="admin-metrics" id="admin-metrics" aria-busy="true"></div>
+
+                <div class="admin-grid admin-grid--chart">
+                    <section class="admin-card admin-chart-card">
+                        <div class="admin-card-heading"><div><p class="admin-kicker">Validated activity</p><h2>Commission by day</h2></div><span id="chart-range"></span></div>
+                        <div id="commission-chart" class="commission-chart"></div>
+                    </section>
+                    <section class="admin-card">
+                        <div class="admin-card-heading"><div><p class="admin-kicker">Local evidence</p><h2>Catalog health</h2></div></div>
+                        <dl class="admin-health-list" id="local-health"></dl>
+                    </section>
+                </div>
+
+                <div class="admin-grid">
+                    <section class="admin-card">
+                        <div class="admin-card-heading"><div><p class="admin-kicker">Attribution</p><h2>Advertiser performance</h2></div></div>
+                        <div class="admin-table-wrap" tabindex="0" aria-label="Advertiser performance table"><table><thead><tr><th>Advertiser</th><th>Actions</th><th>Sales</th><th>Commission</th></tr></thead><tbody id="advertiser-performance"></tbody></table></div>
+                    </section>
+                    <section class="admin-card">
+                        <div class="admin-card-heading"><div><p class="admin-kicker">Reference jobs</p><h2>Sync status</h2></div></div>
+                        <div id="sync-status" class="sync-status-list"></div>
+                    </section>
+                </div>
+
+                <section class="admin-card">
+                    <div class="admin-card-heading"><div><p class="admin-kicker">Redacted detail</p><h2>Recent commission actions</h2></div><span>Order and shopper identifiers excluded</span></div>
+                    <div class="admin-table-wrap" tabindex="0" aria-label="Recent commission actions table"><table><thead><tr><th>Date</th><th>Advertiser</th><th>Status</th><th>Sale</th><th>Commission</th><th>Country</th></tr></thead><tbody id="recent-actions"></tbody></table></div>
+                </section>
+            </section>
+
+            <section class="admin-panel" id="admin-terms" data-admin-panel="terms" role="tabpanel" aria-labelledby="admin-tab-terms" hidden>
+                <div class="admin-section-intro"><div><p class="admin-kicker">Official contract data</p><h2 id="terms-heading">Program terms</h2><p>Review referral windows, locking rules, rates, situations, item lists, and performance incentives returned for joined programs.</p></div><button type="button" id="load-terms">Load program terms</button></div>
+                <div id="terms-content" class="terms-content"><p class="admin-empty">Program terms load on request because this is a larger private dataset.</p></div>
+            </section>
+
+            <section class="admin-panel" id="admin-advertisers" data-admin-panel="advertisers" role="tabpanel" aria-labelledby="admin-tab-advertisers" hidden>
+                <div class="admin-section-intro"><div><p class="admin-kicker">Joined programs</p><h2 id="advertisers-heading">Advertiser diagnostics</h2><p>Relationship, tracking capability, network performance, supported link types, and program metadata from CJ Advertiser Lookup.</p></div><button type="button" id="load-advertisers">Load advertisers</button></div>
+                <div class="admin-table-wrap admin-card" tabindex="0" aria-label="Advertiser diagnostics table"><table><thead><tr><th>Advertiser</th><th>Relationship</th><th>Category</th><th>7-day EPC</th><th>90-day EPC</th><th>Mobile</th></tr></thead><tbody id="advertiser-diagnostics"></tbody></table></div>
+            </section>
+        </div>
+    </main>
+
+    <dialog id="item-list-dialog" class="admin-item-dialog" aria-labelledby="item-list-title">
+        <div class="admin-item-dialog-head">
+            <div><p class="admin-kicker">Commission item rules</p><h2 id="item-list-title">Item list</h2></div>
+            <button type="button" id="close-item-list" aria-label="Close item list">×</button>
+        </div>
+        <div id="item-list-content"></div>
+    </dialog>
+    <div id="admin-notice" class="admin-notice" role="status" aria-live="polite" hidden></div>
+    <script src="catalog-selects.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

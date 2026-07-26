@@ -2,6 +2,12 @@ name = "weathered-mud-6ed5"
 main = "src/integrated-worker.js"
 compatibility_date = "2025-08-07"
 
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/main.html"]
+not_found_handling = "404-page"
+
 # Add D1 database binding for authentication
 [[d1_databases]]
 binding = "DB"
@@ -11,12 +17,22 @@ database_id = "c4ec306a-6521-48ee-afaf-3c8871b40c24"
 # This section is for non-secret variables that are safe to commit to Git.
 [vars]
 CJ_WEBSITE_ID = "101510315"
-# Add your Company ID here. It's usually not a secret.
-CJ_COMPANY_ID = "7673871"# <-- PUT YOUR COMPANY ID HERE
+CJ_COMPANY_ID = "7673871"
 CJ_ADVERTISER_IDS = "all"
+GOOGLE_CLIENT_ID = "351083759622-fnmbu0am1knlj8ltcps8i7la64dhjpnn.apps.googleusercontent.com"
+CJ_GLOBAL_UPSTREAM_REQUESTS_PER_MINUTE = "60"
+CJ_CACHE_MAX_ROWS = "200"
+CJ_ADMIN_REQUESTS_PER_15_MINUTES = "12"
+CJ_ADMIN_COMMISSION_MAX_PAGES = "4"
+EMAIL_GLOBAL_SENDS_PER_HOUR = "100"
+OUTBOUND_GLOBAL_WRITES_PER_MINUTE = "300"
+PRODUCT_OBSERVATION_BATCHES_PER_MINUTE = "10"
 
-# Production domain - will be set via secret for security
+# Public production configuration. Credentials remain Worker secrets.
 ALLOWED_ORIGIN = "https://fragrancecollect.com"
+CONTACT_RECIPIENT = "support@fragrancecollect.com"
+RESEND_FROM = "Fragrance Collect <support@fragrancecollect.com>"
+PUBLIC_SITE_URL = "https://fragrancecollect.com"
 
 # The .dev.vars file is used for local development secrets and is NOT committed to Git.
 # 'wrangler dev' will automatically load this file.
@@ -26,3 +42,7 @@ ALLOWED_ORIGIN = "https://fragrancecollect.com"
 
 [observability.logs]
 enabled = true
+
+[triggers]
+# Refresh rate-limited CJ reference data and apply local retention policies.
+crons = ["17 */6 * * *"]

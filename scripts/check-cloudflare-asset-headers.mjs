@@ -1,0 +1,81 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const root = resolve(import.meta.dirname, '..');
+const source = readFileSync(resolve(root, '_headers'), 'utf8');
+const built = readFileSync(resolve(root, 'dist/_headers'), 'utf8');
+const failures = [];
+
+if (source !== built) failures.push('dist/_headers does not exactly match the reviewed source file');
+const lines = source.split(/\r?\n/);
+if (lines.some((line) => line.length > 2000)) failures.push('_headers contains a line longer than Cloudflare\'s 2,000-character limit');
+
+const rules = [];
+let current = null;
+for (const rawLine of lines) {
+  const line = rawLine.trimEnd();
+  if (!line.trim() || line.trimStart().startsWith('#')) continue;
+  if (!/^\s/.test(rawLine)) {
+    current = { pattern: line.trim(), headers: new Map() };
+    rules.push(current);
+    continue;
+  }
+  const match = line.trim().match(/^([^:]+):\s*(.+)$/);
+  if (!current || !match) {
+    failures.push(`invalid _headers line near "${line.trim().slice(0, 60)}"`);
+    continue;
+  }
+  const name = match[1].trim().toLowerCase();
+  if (current.headers.has(name)) failures.push(`${current.pattern} repeats ${name}; Cloudflare would join both values`);
+  current.headers.set(name, match[2].trim());
+}
+
+if (rules.length > 100) failures.push('_headers exceeds Cloudflare\'s 100-rule limit');
+const globalRule = rules.find((rule) => rule.pattern === '/*');
+if (!globalRule) failures.push('missing global /* security-header rule');
+
+const requiredHeaders = [
+  'content-security-policy',
+  'strict-transport-security',
+  'x-content-type-options',
+  'x-frame-options',
+  'referrer-policy',
+  'permissions-policy',
+  'cross-origin-opener-policy'
+];
+for (const header of requiredHeaders) {
+  if (!globalRule?.headers.has(header)) failures.push(`global rule is missing ${header}`);
+}
+
+const csp = globalRule?.headers.get('content-security-policy') || '';
+for (const directive of ["default-src 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'"]) {
+  if (!csp.includes(directive)) failures.push(`Content-Security-Policy is missing ${directive}`);
+}
+if (globalRule?.headers.get('x-frame-options') !== 'DENY') failures.push('global X-Frame-Options must be DENY');
+if (/unsafe-eval|\*\.workers\.dev|weathered-mud-6ed5/i.test(csp)) {
+  failures.push('Content-Security-Policy contains an unsafe evaluator or obsolete cross-origin Worker endpoint');
+}
+
+for (const path of ['/auth', '/account', '/admin']) {
+  const rule = rules.find((entry) => entry.pattern === path);
+  if (!/\bprivate\b/i.test(rule?.headers.get('cache-control') || '')
+    || !/\bno-store\b/i.test(rule?.headers.get('cache-control') || '')) {
+    failures.push(`${path} must use a private, no-store cache policy at its canonical URL`);
+  }
+}
+if (globalRule?.headers.get('referrer-policy') !== 'no-referrer') {
+  failures.push('global Referrer-Policy must be no-referrer so auth credentials cannot leak');
+}
+
+const workersRule = rules.find((rule) => /\.workers\.dev\/\*$/.test(rule.pattern));
+if (!/\bnoindex\b/i.test(workersRule?.headers.get('x-robots-tag') || '')) {
+  failures.push('workers.dev host rule must prevent duplicate search indexing');
+}
+
+if (failures.length) {
+  console.error('Cloudflare static security-header validation failed:');
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+console.log(`Cloudflare static security-header validation passed for ${rules.length} rules.`);

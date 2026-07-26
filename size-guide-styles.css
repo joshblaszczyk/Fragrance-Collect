@@ -2,7 +2,7 @@
 
 /* Size Guide Header */
 .size-guide-header {
-    background: linear-gradient(135deg, rgba(75, 46, 57, 0.8), rgba(18, 18, 18, 0.9)), url('https://images.unsplash.com/photo-1541643600914-78b084683601?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80');
+    background: linear-gradient(135deg, rgba(75, 46, 57, 0.8), rgba(18, 18, 18, 0.9)), url('assets/images/tom-ford-hero-desktop.webp');
     background-size: cover;
     background-position: center;
     padding: 120px 0 80px;
@@ -198,12 +198,31 @@
     color: var(--warm-white);
 }
 
-.conversion-table tr:last-child td {
+.conversion-table tbody th {
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid var(--fc-gold-line);
+    background: var(--fc-surface);
+    color: var(--fc-paper-bright);
+    font-family: var(--fc-font-body);
+    font-weight: 700;
+}
+
+.conversion-table tr:last-child td,
+.conversion-table tr:last-child th {
     border-bottom: none;
 }
 
 .conversion-table tr:hover {
     background: rgba(201, 166, 70, 0.1);
+}
+
+.estimate-note {
+    max-width: 760px;
+    margin: 1rem auto 0;
+    color: rgba(245, 240, 230, 0.78);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    text-align: center;
 }
 
 /* Usage Section */
@@ -382,47 +401,124 @@
     display: block;
 }
 
+.calculator-result-content {
+    width: 100%;
+    color: var(--warm-white);
+    text-align: center;
+}
+
+.calculator-result-content > h3 {
+    margin: 0 0 1.5rem;
+    color: var(--warm-white);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+}
+
+.result-size {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    border: 2px solid var(--antique-gold);
+    border-radius: 10px;
+    background: rgba(18, 18, 18, 0.3);
+}
+
+.result-size h4 {
+    margin-bottom: 0.5rem;
+    color: var(--antique-gold);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+}
+
+.result-stats {
+    margin-bottom: 1.5rem;
+}
+
+.stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid rgba(201, 166, 70, 0.2);
+    text-align: left;
+}
+
+.stat-label {
+    color: rgba(245, 240, 230, 0.8);
+    font-weight: 500;
+}
+
+.stat-value {
+    color: var(--antique-gold);
+    font-weight: 600;
+    text-align: right;
+}
+
+.result-reasoning {
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid rgba(201, 166, 70, 0.3);
+    border-radius: 10px;
+    background: rgba(18, 18, 18, 0.3);
+    color: rgba(245, 240, 230, 0.9);
+    line-height: 1.6;
+}
+
+.calculator-error {
+    color: #ff9b9b;
+    text-align: center;
+}
+
+.calculator-error i {
+    display: block;
+    margin-bottom: 1rem;
+    font-size: 3rem;
+}
+
+.calculator-error p {
+    margin: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .size-guide-title {
         font-size: 2.5rem;
     }
-    
+
     .size-guide-subtitle {
         font-size: 1rem;
     }
-    
+
     .size-grid {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
-    
+
     .size-card {
         padding: 2rem;
     }
-    
+
     .size-card.featured {
         transform: none;
     }
-    
+
     .size-card.featured:hover {
         transform: translateY(-5px);
     }
-    
+
     .usage-grid {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
-    
+
     .calculator-container {
         grid-template-columns: 1fr;
         gap: 2rem;
     }
-    
+
     .conversion-table {
         overflow-x: auto;
     }
-    
+
     .conversion-table table {
         min-width: 600px;
     }
@@ -432,36 +528,36 @@
     .size-guide-header {
         padding: 6rem 0 3rem;
     }
-    
+
     .size-guide-title {
         font-size: 2rem;
     }
-    
+
     .size-card {
         padding: 1.5rem;
     }
-    
+
     .size-icon {
         width: 60px;
         height: 60px;
     }
-    
+
     .size-icon i {
         font-size: 1.5rem;
     }
-    
+
     .usage-card {
         padding: 1.5rem;
     }
-    
+
     .calculator-form,
     .calculator-result {
         padding: 1.5rem;
     }
-    
+
     .conversion-table th,
     .conversion-table td {
         padding: 1rem 0.5rem;
         font-size: 0.9rem;
     }
-} 
+}

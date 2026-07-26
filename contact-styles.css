@@ -3,7 +3,7 @@
 /* Contact Header */
 .contact-header {
     background: linear-gradient(135deg, rgba(75, 46, 57, 0.9), rgba(18, 18, 18, 0.95)),
-                url('https://images.unsplash.com/photo-1587017539504-67cfbddac569?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80');
+                url('assets/images/chanel-hero-desktop.webp');
     background-size: cover;
     background-position: center;
     padding: 120px 0 80px;
@@ -52,7 +52,7 @@
 /* Contact Content */
 .contact-content {
     padding: 5rem 0;
-    background: #000000;
+    background: var(--fc-ink);
 }
 
 .contact-wrapper {
@@ -86,11 +86,9 @@
 
 .form-title {
     font-size: 2rem;
-    color: var(--antique-gold); /* Gold title to match theme */
-    color: #C9A646; /* Fallback gold */
+    color: var(--fc-gold);
     margin-bottom: 2rem;
     text-align: center;
-    text-shadow: 0 0 10px rgba(201, 166, 70, 0.4); /* Gold glow effect */
     font-weight: 700;
 }
 
@@ -107,75 +105,45 @@
 }
 
 .form-label {
-    color: var(--antique-gold); /* Gold labels to match theme */
-    color: #C9A646; /* Fallback gold */
-    font-weight: 600; /* Slightly bolder */
+    color: var(--fc-gold-soft);
+    font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 0.3rem;
-    text-shadow: 0 0 5px rgba(201, 166, 70, 0.3); /* Subtle gold glow */
 }
 
 .form-input,
 .form-select,
 .form-textarea {
-    background: var(--dark-gray) !important; /* Dark gray background for ALL */
-    border: 2px solid var(--antique-gold) !important; /* Gold border for ALL */
+    background: var(--fc-surface-control);
+    border: 1px solid var(--fc-line-strong);
     border-radius: 10px;
     padding: 1rem;
-    color: var(--warm-white) !important; /* White text for ALL */
+    color: var(--fc-text);
     font-size: 1rem;
     transition: all 0.3s ease-in-out;
     font-family: 'Lato', sans-serif;
-    box-shadow: inset 0 0 0 1px rgba(201, 166, 70, 0.1) !important; /* Subtle inner gold glow for ALL */
-    -webkit-appearance: none; /* Reset browser styles */
+    -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
 }
 
-/* Style for the select placeholder state */
 .select-placeholder {
-    color: rgba(201, 166, 70, 0.7) !important; /* Gold placeholder text */
-    font-style: italic !important;
-    opacity: 0.8 !important;
-}
-
-/* HIGH-SPECIFICITY FIX for Subject dropdown text color */
-#subject.form-select,
-select[name="subject"] {
-    color: var(--warm-white) !important;
-}
-
-/* HIGH-SPECIFICITY FIX for Full Name input */
-#name.form-input,
-input[name="name"] {
-    background: var(--dark-gray) !important;
-    border: 2px solid var(--antique-gold) !important;
-    color: var(--warm-white) !important;
-}
-
-/* Email input specific styling override - just for appearance reset */
-#email,
-.form-input[type="email"],
-input[type="email"].form-input {
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
+    color: var(--fc-muted);
+    font-style: italic;
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
     outline: none;
-    border-color: var(--antique-gold);
-    border-color: #C9A646; /* Fallback gold */
-    box-shadow: 0 0 15px rgba(201, 166, 70, 0.3); /* Gold glow */
-    background: rgba(0, 0, 0, 0.9); /* Slightly lighter black on focus */
+    border-color: var(--fc-gold);
+    box-shadow: var(--fc-focus-ring);
+    background: var(--fc-surface-control);
 }
 
 .form-input::placeholder,
 .form-textarea::placeholder {
-    color: rgba(201, 166, 70, 0.7); /* Gold placeholder text */
-    color: rgba(245, 240, 230, 0.8); /* Fallback light color */
+    color: var(--fc-muted);
     font-style: italic;
     opacity: 0.8;
 }
@@ -185,10 +153,8 @@ input[type="email"].form-input {
 }
 
 .form-select option {
-    background: #000000; /* Black background for dropdown */
-    background: var(--deep-plum); /* Fallback */
-    color: var(--warm-white); /* White text */
-    color: #FFFFFF; /* Fallback white */
+    background: var(--fc-surface);
+    color: var(--fc-text);
     padding: 0.5rem;
 }
 
@@ -198,13 +164,11 @@ input[type="email"].form-input {
 }
 
 .submit-btn {
-    background: var(--dark-gray); /* Dark gray background */
-    border: 2px solid var(--antique-gold); /* Gold border */
-    border: 2px solid #C9A646; /* Fallback gold */
+    background: var(--fc-gold);
+    border: 1px solid var(--fc-gold);
     padding: 1.2rem 2rem;
     border-radius: 50px;
-    color: var(--antique-gold); /* Gold text */
-    color: #C9A646; /* Fallback gold */
+    color: var(--fc-ink);
     font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
@@ -216,35 +180,34 @@ input[type="email"].form-input {
     justify-content: center;
     gap: 0.5rem;
     margin-top: 1rem;
-    box-shadow: 0 0 20px rgba(201, 166, 70, 0.3); /* Gold glow */
+    box-shadow: var(--fc-shadow-sm);
 }
 
 .submit-btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 0 30px rgba(201, 166, 70, 0.6); /* Enhanced gold glow */
-    background: var(--medium-gray); /* Lighter gray on hover */
-    border-color: #e6c866; /* Brighter gold border */
+    box-shadow: var(--fc-shadow);
+    background: var(--fc-gold-soft);
+    border-color: var(--fc-gold-soft);
 }
 
 .submit-btn i {
     font-size: 0.9rem;
     transition: transform 0.3s ease-in-out;
-    color: var(--antique-gold); /* Gold icon */
-    color: #C9A646; /* Fallback gold */
+    color: currentColor;
 }
 
 .submit-btn:hover i {
     transform: translateX(3px);
-    color: #e6c866; /* Brighter gold on hover */
+    color: currentColor;
 }
 
 /* Contact Information Section */
 .contact-info-section {
-    background: var(--medium-gray); /* Reverted to gray background */
+    background: var(--fc-surface);
     padding: 3rem;
     border-radius: 20px;
-    border: 1px solid rgba(201, 166, 70, 0.1); /* Original border */
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); /* Original shadow */
+    border: 1px solid var(--fc-line);
+    box-shadow: var(--fc-shadow-sm);
     position: relative;
     overflow: hidden;
 }
@@ -333,6 +296,17 @@ input[type="email"].form-input {
     margin-bottom: 0.3rem;
     line-height: 1.4;
     transition: color 0.3s;
+}
+
+.contact-text a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--fc-gold-line);
+    text-underline-offset: 3px;
+}
+
+.contact-text a:hover {
+    color: var(--fc-gold-soft);
 }
 
 .contact-item:hover .contact-text p {
@@ -452,54 +426,38 @@ input[type="email"].form-input {
     line-height: 1.6;
 }
 
-/* Success Message */
-.success-message {
-    background: linear-gradient(135deg, var(--antique-gold), #e6c866);
-    color: var(--soft-black);
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    text-align: center;
-    margin-bottom: 2rem;
-    display: none;
-    animation: slideIn 0.5s ease-in-out;
-    border: 1px solid rgba(201, 166, 70, 0.3);
-    box-shadow: 0 5px 15px rgba(201, 166, 70, 0.2);
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Success Modal Styles */
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top */
+    display: none;
+    position: fixed;
+    z-index: 1000;
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.72);
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
     animation: fadeIn 0.3s ease-in-out;
 }
 
+.modal.is-open {
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
 .modal-content {
-    background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
-    color: #fff;
-    margin: 15% auto; /* 15% from the top and centered */
+    background: var(--fc-surface);
+    color: var(--fc-text);
+    margin: 15% auto;
     padding: 30px;
     border: 1px solid var(--antique-gold);
-    width: 80%; /* Could be more or less, depending on screen size */
+    width: 80%;
     max-width: 500px;
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -508,14 +466,18 @@ input[type="email"].form-input {
     animation: slideUp 0.4s ease-in-out;
 }
 
+.modal.is-open .modal-content {
+    margin: 0;
+}
+
 .modal-icon {
     font-size: 50px;
-    color: #4CAF50;
+    color: var(--fc-gold);
     margin-bottom: 20px;
 }
 
 .modal-content h2 {
-    color: #fff;
+    color: var(--fc-paper-bright);
     font-family: 'Playfair Display', serif;
     font-size: 2rem;
     margin-bottom: 15px;
@@ -524,11 +486,14 @@ input[type="email"].form-input {
 .modal-content p {
     font-size: 1.1rem;
     line-height: 1.6;
-    color: #ccc;
+    color: var(--fc-muted);
 }
 
 .close-button {
-    color: #aaa;
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--fc-muted);
     float: right;
     font-size: 28px;
     font-weight: bold;
@@ -538,9 +503,23 @@ input[type="email"].form-input {
     transition: color 0.3s;
 }
 
+.form-message {
+    margin: 0 0 1.25rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(255, 134, 134, 0.65);
+    border-radius: 8px;
+    background: rgba(105, 22, 22, 0.42);
+    color: #ffd7d7;
+    line-height: 1.5;
+}
+
+.form-group:focus-within .form-label {
+    color: var(--antique-gold);
+}
+
 .close-button:hover,
 .close-button:focus {
-    color: #fff;
+    color: var(--fc-paper-bright);
     text-decoration: none;
     cursor: pointer;
 }
@@ -562,7 +541,7 @@ input[type="email"].form-input {
         gap: 3rem;
         max-width: 600px;
     }
-    
+
     .contact-title {
         font-size: 3rem;
     }
@@ -572,42 +551,42 @@ input[type="email"].form-input {
     .contact-header {
         padding: 6rem 0 3rem;
     }
-    
+
     .contact-title {
         font-size: 2.5rem;
     }
-    
+
     .contact-subtitle {
         font-size: 1rem;
     }
-    
+
     .contact-content {
         padding: 3rem 0;
     }
-    
+
     .contact-form-section,
     .contact-info-section {
         padding: 2rem;
     }
-    
+
     .form-title,
     .info-title {
         font-size: 1.8rem;
     }
-    
+
     .faq-grid {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
-    
+
     .faq-item {
         padding: 1.5rem;
     }
-    
+
     .contact-item {
         padding: 1rem;
     }
-    
+
     .contact-icon {
         width: 40px;
         height: 40px;
@@ -619,36 +598,36 @@ input[type="email"].form-input {
     .contact-title {
         font-size: 2rem;
     }
-    
+
     .contact-form-section,
     .contact-info-section {
         padding: 1.5rem;
     }
-    
+
     .form-input,
     .form-select,
     .form-textarea {
         padding: 0.8rem;
     }
-    
+
     .submit-btn {
         padding: 1rem 1.5rem;
         font-size: 1rem;
     }
-    
+
     .contact-item {
         flex-direction: column;
         text-align: center;
         gap: 0.8rem;
     }
-    
+
     .social-links {
         gap: 0.8rem;
     }
-    
+
     .social-links .social-link {
         width: 40px;
         height: 40px;
         font-size: 1rem;
     }
-} 
+}
