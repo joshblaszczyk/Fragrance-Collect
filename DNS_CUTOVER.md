@@ -1,49 +1,26 @@
-# Fragrance Collect DNS Cutover Runbook
+# Hybrid Hosting Runbook (No DNS Cutover)
 
-This runbook records the public production DNS state observed on July 26, 2026 and the no-downtime sequence for moving `fragrancecollect.com` from GitHub Pages to the integrated Cloudflare Worker.
+This file replaces the abandoned Cloudflare nameserver-cutover plan. Its historical filename is retained so existing repository links do not break.
 
-## Current authority and rollback target
+Fragrance Collect uses this production layout:
 
-- Registrar/DNS provider: Namecheap BasicDNS
-- Authoritative nameservers: `dns1.registrar-servers.com`, `dns2.registrar-servers.com`
-- Parent delegation cache: up to 48 hours
-- Active parent DS: key tag `7393`, algorithm `13`, digest type `1`, digest `6052EFBB4C75DEA611B92DC35F9714AF7C9705F5`
-- Parent DS TTL: 24 hours
-- Current web origin: GitHub Pages
+| Service | Production location |
+| --- | --- |
+| Frontend | GitHub Pages at `https://fragrancecollect.com` |
+| API | Cloudflare Worker at `https://weathered-mud-6ed5.joshuablaszczyk.workers.dev` |
+| Database | Cloudflare D1 bound to the Worker |
+| Mailboxes | Namecheap Private Email |
+| Transactional sending | Resend through the Worker |
 
-Keep the Namecheap zone unchanged and available for at least 48 hours after changing nameservers. During that mixed-cache period, the old and new zones must both serve a working site and identical mail records.
+Do **not** change the registrar nameservers, move the zone to Cloudflare, remove the GitHub Pages records, or attach `fragrancecollect.com` as a Worker Custom Domain. The frontend calls the Worker directly through its `workers.dev` URL.
 
-## Minimum observed records that must be reproduced in Cloudflare
+In **GitHub → Settings → Pages**, keep **Build and deployment** on **Deploy from a branch**, branch **`main`**, folder **`/(root)`**. The old `gh-pages` branch is not the production source.
 
-Public DNS cannot prove that every private verification or service record has been discovered. Export the complete Namecheap zone in the dashboard and compare that export with this observed minimum before changing DNSSEC or nameservers.
+## DNS records to retain
 
-Mail-related records must remain DNS-only. Do not proxy them.
+Namecheap remains authoritative. Keep these web records:
 
-| Type | Name | Priority | Value |
-| --- | --- | ---: | --- |
-| MX | `@` | 10 | `mx1.privateemail.com` |
-| MX | `@` | 10 | `mx2.privateemail.com` |
-| TXT | `_dmarc` | — | `v=DMARC1; p=none;` |
-| TXT | `resend._domainkey` | — | Use the complete public RSA key recorded below. |
-| TXT | `send` | — | `v=spf1 include:amazonses.com ~all` |
-| SRV | `_autodiscover._tcp` | 0 | Weight `0`, port `443`, target `privateemail.com` |
-| CNAME | `autoconfig` | — | `privateemail.com` |
-| CNAME | `autodiscover` | — | `privateemail.com` |
-| CNAME | `mail` | — | `privateemail.com` |
-
-The exact current Resend DKIM TXT value is:
-
-```text
-p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDuHheTgfVBZAz498FyNWSvOyyzFRibEnFfXsgsD4kGZeRLnqPUVSC8I4oHzryTqvEATR91uzRf0cWVP1w/nKRQ/hSqJe3J7F3zHQUWOKclNlfGKPsn1JcdyTr3L5i6K9B2rZKbwf6pGrxy0A7ry3muJFMQ07fP7IwZr8VongYg/QIDAQAB
-```
-
-The current public zone has no apex SPF TXT, no published Private Email DKIM selector, and no MX record at `send.fragrancecollect.com`. Confirm the intended Private Email configuration and copy Resend's exact generated SPF/MX/DKIM records from its dashboard before cutover. Add the corrected records to both the still-live Namecheap zone and the pending Cloudflare zone before delegation so mail remains consistent during mixed resolver caching. Do not guess a DKIM selector, Resend region, or MX target.
-
-The Worker health flag only confirms that its email configuration is bound; it does not prove Resend domain verification or delivery. Confirm that `info@fragrancecollect.com` and `support@fragrancecollect.com` are real Namecheap mailboxes or aliases, then perform controlled inbound and outbound delivery tests.
-
-These web records are the rollback origin and should initially be copied into Cloudflare:
-
-| Type | Name | Value |
+| Type | Host | Value |
 | --- | --- | --- |
 | A | `@` | `185.199.108.153` |
 | A | `@` | `185.199.109.153` |
@@ -51,40 +28,104 @@ These web records are the rollback origin and should initially be copied into Cl
 | A | `@` | `185.199.111.153` |
 | CNAME | `www` | `awdiawdoiawjdioajw.github.io` |
 
-Do not import the old provider's NS, SOA, DNSKEY, NSEC, RRSIG, or DS records into Cloudflare.
+Keep the repository `CNAME` file set to `fragrancecollect.com`. Also retain every existing Namecheap Private Email record, including the two apex MX records, mailbox/autodiscovery CNAME and SRV records, DMARC, and any provider verification records. Mail records are unrelated to the Worker API host.
 
-## No-downtime sequence
+If a Cloudflare zone was started only for the abandoned cutover, do not proceed to nameserver activation. An inactive copy of the zone does not control production DNS.
 
-1. Add `fragrancecollect.com` to the correct Cloudflare account, but do not change registrar nameservers yet.
-2. Export the Namecheap zone, reproduce every exported record, and independently compare it with the minimum observed set above. Keep the GitHub web records active at first so both DNS providers lead to the existing site.
-3. Confirm the Cloudflare zone reports the expected assigned nameservers and that Universal SSL is enabled or pending. Require an active certificate after delegation before removing the GitHub records.
-4. In Google Cloud, confirm `https://fragrancecollect.com` is an authorized JavaScript origin for the configured client. The Worker redirects `www` before authentication.
-5. In Namecheap, confirm both site mailboxes or aliases and copy the provider's exact apex SPF and DKIM records. In Resend, confirm the sending domain is verified and copy every generated record exactly. Put these corrections in both zones before delegation. Keep the Namecheap Private Email MX records at the apex; do not add a competing Resend receiving MX there.
-6. Disable Namecheap DNSSEC/remove the old DS at the registrar. Wait at least the old 24-hour DS TTL and verify public resolvers no longer return the old DS. Never change nameservers while a stale DS remains.
-7. Change the registrar nameservers to the two assigned by Cloudflare. Keep the Namecheap zone and matching Cloudflare rollback records intact for the full 48-hour parent NS cache window.
-8. Wait the full observed 48-hour parent NS TTL after the registrar change and verify through multiple public resolvers that the delegation now uses Cloudflare. Require the zone to be Active and Universal SSL enabled, while confirming the apex and `www` still reach GitHub Pages over HTTPS through the copied rollback records. Do not remove those records, merge the PR, or install Cloudflare's new DS during this mixed-authority window.
-9. In Cloudflare, remove only the four GitHub apex A records and the `www` GitHub CNAME. Immediately deploy the Worker configuration in this repository; its two Custom Domains create the replacement DNS records and their certificates. Wait for both Custom Domains and certificates to become active before continuing.
-10. Verify the apex API/static contracts, the `www` permanent redirect, sign-in, reset email, contact email, search, favorites, export, and watches.
-11. Merge the validated release PR only after the custom domain is serving correctly. This is important because GitHub Pages currently builds from `main`, and the PR intentionally removes its `CNAME`. Record the exact temporarily deployed Worker SHA/version, smoke-test it, and merge immediately afterward so production is not left ahead of `main`.
-12. After the delegation is stable, enable Cloudflare DNSSEC and install Cloudflare's new DS at the registrar. Verify DNSSEC before considering the cutover complete.
+## Google sign-in setup
 
-## Verification
+The Google button is rendered on GitHub Pages, so Google must authorize the **frontend origin**, not the Worker URL.
 
-```bash
-npm run api:check:production
-npm run check:cloudflare-production
+1. Open [Google Auth Platform — Clients](https://console.cloud.google.com/auth/clients) and select the Google Cloud project used by Fragrance Collect.
+2. Open the Web application OAuth client whose client ID is:
+
+   ```text
+   351083759622-fnmbu0am1knlj8ltcps8i7la64dhjpnn.apps.googleusercontent.com
+   ```
+
+3. Under **Authorized JavaScript origins**, add exactly:
+
+   ```text
+   https://fragrancecollect.com
+   ```
+
+4. Do not add a path, a trailing page name, query parameters, or the Worker URL. `https://fragrancecollect.com/auth.html` is not a valid origin entry.
+5. Do not add this value under **Authorized redirect URIs**. The current Google Identity Services popup flow returns its credential to JavaScript and does not use a redirect endpoint.
+6. Add `https://www.fragrancecollect.com` only if the Google button is actually rendered there before redirecting to the apex. The intended canonical login page uses the apex origin.
+7. Save. Google configuration can take several minutes—and occasionally longer—to propagate.
+8. Open **Google Auth Platform → Audience**. If the app is still in **Testing**, add `joshuablaszczyk@gmail.com` as a test user. Before publishing externally, confirm the branding page has the production homepage, privacy-policy, and terms links and complete any verification Google requires.
+9. Open a private browser window, visit `https://fragrancecollect.com/auth.html`, and try Google sign-in. Confirm the `origin_mismatch` page no longer appears, reload the page, and confirm the same account remains signed in.
+
+Changing DNS, authorizing the Worker origin, or adding a redirect URI will not fix a JavaScript-origin mismatch on the GitHub Pages login page.
+
+Google references: [create a web client and configure origins](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid) and [manage OAuth clients](https://support.google.com/cloud/answer/15549257?hl=en).
+
+## Resend sending-domain setup
+
+Resend sends transactional messages; it does not replace the Namecheap inboxes. Keep the root Namecheap MX records so `info@fragrancecollect.com` and `support@fragrancecollect.com` continue receiving mail.
+
+1. Open [Resend Domains](https://resend.com/domains), select `fragrancecollect.com`, and open its DNS record list.
+2. Copy the exact records shown by Resend. The expected record purposes are:
+
+   - DKIM TXT with host `resend._domainkey`.
+   - SPF TXT with host `send` and value `v=spf1 include:amazonses.com ~all`.
+   - A sending MX record with host `send`.
+
+3. In Namecheap, open **Domain List → Manage → Advanced DNS** for `fragrancecollect.com`.
+4. Compare the existing `resend._domainkey` TXT value with the complete value in Resend. If it differs, replace it with the complete Resend value. Copy from the provider dashboard; do not copy a visually truncated screenshot.
+5. Compare the existing `send` SPF TXT value. Keep one SPF TXT record for that host. Do not create a duplicate SPF record.
+6. Under Namecheap's mail/custom MX controls, add Resend's sending MX exactly as its dashboard shows:
+
+   - Type: `MX`
+   - Host: `send`
+   - Value/target: copy Resend's exact target
+   - Priority: copy Resend's exact priority
+   - TTL: `Automatic`
+
+   Enter `send`, not `send.fragrancecollect.com`, because Namecheap appends the zone name. Resend's target can be region-specific, so do not guess it from an example.
+7. Preserve the two inbound Namecheap records at the zone apex:
+
+   ```text
+   @  MX  10  mx1.privateemail.com
+   @  MX  10  mx2.privateemail.com
+   ```
+
+8. Do not enable Resend Receiving and do not add a Resend receiving MX at `@`. Namecheap Private Email remains responsible for inbound mail.
+9. Save the Namecheap changes. Return to Resend and choose **Verify** or **Restart verification** for the domain.
+10. DNS verification often completes quickly but can take up to 72 hours. If it remains pending, compare the host, type, full value, and priority in Namecheap against the current Resend dashboard one field at a time.
+
+After the domain shows **Verified**:
+
+1. Open **Resend → API Keys**. Reuse the existing Fragrance Collect sending key if it is active; otherwise create a sending-only key scoped as narrowly as the dashboard permits. Copy a newly created value once and do not place it in DNS, Git, GitHub Pages, frontend JavaScript, screenshots, or chat.
+2. In **Cloudflare → Workers & Pages → weathered-mud-6ed5 → Settings → Variables and Secrets**, confirm a secret named exactly `RESEND_API_KEY` exists. Add or replace it only through the protected Cloudflare secret control. The value must be marked encrypted/secret, never plaintext.
+3. Keep `RESEND_FROM` as the non-secret Worker variable `Fragrance Collect <support@fragrancecollect.com>` unless the reviewed application configuration intentionally changes the sender. A verified domain can send from its addresses without putting the mailbox password in the Worker.
+4. Run the repository's name-only Worker binding check, then send one password-reset message and one contact-form message. Confirm delivery and replies without printing the API key.
+
+Resend references: [Namecheap setup](https://resend.com/docs/knowledge-base/namecheap), [domain records](https://resend.com/docs/dashboard/domains/introduction), and [domain verification troubleshooting](https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying).
+
+### Separate Namecheap Private Email DKIM record
+
+The `default._domainkey` panel shown by Namecheap Private Email is unrelated to Resend's `resend._domainkey`; both records can coexist. If Namecheap still shows the mailbox DKIM record as missing, click **Copy** next to **DNS Record** (not **Public Key**) and add a Namecheap **TXT Record** with host `default._domainkey`, the complete copied `v=DKIM1;k=rsa;p=...` value, and TTL `Automatic`. Never reconstruct the key from a truncated screenshot and do not delete `resend._domainkey`.
+
+## Worker configuration and verification
+
+The committed Worker configuration already identifies the frontend origin and sending address:
+
+```text
+ALLOWED_ORIGIN=https://fragrancecollect.com
+PUBLIC_SITE_URL=https://fragrancecollect.com
+RESEND_FROM=Fragrance Collect <support@fragrancecollect.com>
 ```
 
-Also confirm unauthenticated account endpoints return `401`, `robots.txt` and `sitemap.xml` load, and the custom 404 responds with `404`. Send controlled password-reset and contact messages, and verify inbound and outbound mail for the configured Namecheap mailboxes.
+`GOOGLE_CLIENT_ID` is a public client identifier and remains a non-secret Worker variable. `RESEND_API_KEY` must remain a Cloudflare Worker secret; never put it in Git, frontend JavaScript, GitHub Pages settings, or a DNS record. Provision or rotate that secret only through the controlled operator procedure, then run the repository's binding-name preflight.
 
-## Rollback
+After Google and Resend report ready and the reviewed Worker release is deployed:
 
-The normal rollback is inside the active Cloudflare zone: remove the Worker Custom Domains, restore the four GitHub Pages apex A records and the `www` CNAME above, and verify GitHub Pages. Do not immediately revert nameservers; recursive resolvers may still be split between the old and new authorities for up to 48 hours.
+1. Load `https://fragrancecollect.com/auth.html` in a private window and complete Google sign-in.
+2. Reload the auth/account page and confirm the same account remains signed in. Save and remove one favorite, save and remove one watch, download account data, then sign out. Treat any secure-cookie compatibility message as a failed release check.
+3. Request one password-reset email and confirm the message arrives without exposing whether an arbitrary address has an account.
+4. Submit one contact message and confirm it reaches the configured support mailbox.
+5. Inspect the browser network panel and confirm account API calls go to `https://weathered-mud-6ed5.joshuablaszczyk.workers.dev`, return the exact `Access-Control-Allow-Origin: https://fragrancecollect.com`, and allow credentials.
+6. Confirm the four GitHub Pages apex A records, the `www` CNAME, and the Namecheap root MX records remain unchanged.
 
-## Provider references
-
-- [Cloudflare full-zone setup](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/)
-- [Cloudflare Worker Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
-- [Resend domain records](https://resend.com/docs/dashboard/domains/introduction)
-- [Namecheap Private Email DNS verification](https://www.namecheap.com/support/knowledgebase/article.aspx/1262/2176/what-does-namecheap-private-email-dns-verification-imply/)
-- [Google Identity authorized JavaScript origins](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid)
+No step in this runbook requires a Cloudflare zone activation, nameserver change, DNSSEC transition, or Worker custom domain.

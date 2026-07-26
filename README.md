@@ -6,14 +6,14 @@ A full-stack fragrance discovery platform that compares offers from configured a
 
 ## Architecture
 
-**Frontend** — Vanilla JavaScript, HTML5, CSS3 (no framework dependencies)
+**Frontend** — Vanilla JavaScript, HTML5, CSS3 on GitHub Pages (no framework dependencies)
 - Submitted product search with pagination and server-side filtering
 - Dynamic currency conversion across 30+ currencies with live exchange rates
 - Client-side filtering by price, brand, shipping, and sort order
 - Account favorites synchronized through the Worker API
 - Responsive design optimized for mobile and desktop
 
-**Backend** — Cloudflare Workers (serverless, edge-deployed)
+**Backend** — Cloudflare Workers at `weathered-mud-6ed5.joshuablaszczyk.workers.dev` (serverless, edge-deployed)
 - Product aggregation through the CJ Affiliate GraphQL API and configured retail partners
 - Evidence-based ranking using catalog quality, availability, current discounts, relevance, and anonymized outbound interest
 - Smart deduplication across data sources
@@ -47,7 +47,7 @@ A full-stack fragrance discovery platform that compares offers from configured a
 | Backend | Cloudflare Workers |
 | Database | Cloudflare D1 (SQLite) |
 | APIs | CJ Affiliate (GraphQL), Google OAuth, open.er-api.com, Frankfurter |
-| Hosting | Cloudflare Worker + Static Assets (one same-origin release) |
+| Hosting | GitHub Pages frontend + Cloudflare Worker API |
 | Email | Resend |
 | CI/CD | GitHub Actions |
 
@@ -55,7 +55,7 @@ A full-stack fragrance discovery platform that compares offers from configured a
 
 ```
 ├── main.html                    # Main product catalog page
-├── index.html                   # Local no-script fallback; not copied into production
+├── index.html                   # GitHub Pages entry point
 ├── script.js                    # Core application logic (search, filters, favorites, currency)
 ├── styles.css                   # Main stylesheet
 ├── shared-auth.js               # Cross-page authentication module
@@ -72,8 +72,8 @@ A full-stack fragrance discovery platform that compares offers from configured a
 ├── test/                        # Security, reliability, and migration regressions
 ├── weathered-mud-6ed5/          # Cloudflare Worker (product search + auth API)
 │   ├── migrations/              # Ordered, non-destructive D1 migrations
-│   └── src/integrated-worker.js # Single API deployment target
-└── dist/                        # Generated production site (ignored by Git)
+│   └── src/integrated-worker.js # API deployment target
+└── dist/                        # Generated Worker preview assets (ignored by Git)
 ```
 
 ## Local Development
@@ -89,7 +89,7 @@ npm run verify
 npm run dev
 ```
 
-Local development intentionally uses the same architecture as production: the Cloudflare Worker serves both `/api/*` and the generated static assets on one origin. No local page silently calls the deployed API, and there is no query-string switch that can redirect credentials or account requests to another host. Local CJ credentials are required only when testing live partner results.
+Local development intentionally keeps the generated frontend and `/api/*` on one Wrangler origin. Production is different by design: GitHub Pages serves `https://fragrancecollect.com`, and those pages call the Worker at `https://weathered-mud-6ed5.joshuablaszczyk.workers.dev`. No local page silently calls the deployed API, and there is no query-string switch that can redirect credentials or account requests to another host. Local CJ credentials are required only when testing live partner results.
 
 `npm run dev` owns the complete local lifecycle and cleans up its Wrangler process when it exits. In a second terminal, run `npm run api:check:local` for the real account API checks. Without local CJ or Resend credentials, `/api/health` intentionally reports `503 degraded` and watch creation reports that notifications are unavailable; the check still requires a healthy Worker, attested D1 schema, verification, sessions, favorites, export, and secure account deletion. When testing configured external integrations, set `LOCAL_EXPECT_FULL_HEALTH=true` and `LOCAL_EXPECT_WATCHES=true` so the check fails unless those services and watches are available. `npm run dev:worker` remains available for advanced Worker-only troubleshooting after a Cloudflare asset build, and `npm --prefix weathered-mud-6ed5 run migrate:local` applies only local migrations. Put local CJ and mail secrets in `weathered-mud-6ed5/.dev.vars`; never commit that file.
 
@@ -107,11 +107,13 @@ The CJ integration also uses cached Advertiser Lookup, Link Search, Program Term
 
 Public endpoints expose only shopper-safe catalog, promotion, retailer, and observed-history fields. Cross-retailer product comparison uses canonicalized GTIN (UPC/EAN/JAN) first, then brand plus MPN plus a compatible fragrance variant. Retailer SKU identity includes advertiser, CJ catalog, and feed ID, so sparse records can still support exact-listing watches and history without being merged across retailers. Size normalization ranks structured feed data ahead of product details, title, retailer URL, and description; it understands common fl-oz/mL equivalents and multipacks. Item-group identifiers remain variant-family metadata, and name-only records are not merged. Program terms and redacted commission summaries require both an authenticated session and an email listed in `ADMIN_EMAILS`.
 
-`ALLOWED_ORIGIN` accepts a comma-separated list when a staging origin is required. Local HTTP origins are accepted only for localhost/loopback development.
+`ALLOWED_ORIGIN` must include the exact browser origin allowed to make credentialed requests. Production uses `https://fragrancecollect.com`; the Worker returns that exact value in CORS responses and never uses a credentialed wildcard. It accepts a comma-separated list only when a separately reviewed staging origin is required. Local HTTP origins are accepted only for localhost/loopback development.
 
 ## Release Contract
 
-Production is one Cloudflare deployment containing the API Worker and the exact `dist/` Static Assets artifact. GitHub push and pull-request workflows validate only; they have read-only repository permissions and no Cloudflare credentials. A push to `main` cannot deploy anything.
+Production uses two deliberately separate hosts. GitHub Pages publishes the repository frontend at `https://fragrancecollect.com`; the manually approved Cloudflare workflow publishes the API at `https://weathered-mud-6ed5.joshuablaszczyk.workers.dev`. The Worker has no custom-domain routes, and this architecture requires no Cloudflare DNS zone or registrar nameserver change. The Worker build still contains noindexed preview assets, but they are not the canonical site.
+
+In **GitHub → Settings → Pages**, keep **Build and deployment** set to **Deploy from a branch**, with branch **`main`** and folder **`/(root)`**. Production currently follows that source. Do not switch Pages back to the obsolete `gh-pages` branch; repository tests cannot enforce this provider-side setting.
 
 The local exact-release gate requires Node 22 or newer:
 
@@ -125,34 +127,34 @@ npm run release:prepush
 
 ### Controlled production release
 
-Configure a GitHub environment named `production` with required reviewers, prevent self-approval where the repository plan supports it, restrict it to `main`, and store `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as environment secrets. Scope the Cloudflare token to the required account with Workers Scripts Write (which also authorizes the name-only secret listing), D1 Read, and only the necessary custom-domain/zone resources. Do not grant this CI token D1 Edit or permission to manage account tokens: reviewed migrations and Worker-secret bootstrap/rotation use separate operator authorization, and the workflow is intentionally incapable of changing production data or secret values. Do not give the validation workflow any environment or deployment secrets.
+Configure a GitHub environment named `production` with required reviewers, prevent self-approval where the repository plan supports it, restrict it to `main`, and store `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as environment secrets. Scope the Cloudflare token to the required account with Workers Scripts Write (which also authorizes the name-only secret listing) and D1 Read. It does not need zone, DNS, or custom-domain permissions. Do not grant this CI token D1 Edit or permission to manage account tokens: reviewed migrations and Worker-secret bootstrap/rotation use separate operator authorization, and the workflow is intentionally incapable of changing production data or secret values. Do not give the validation workflow any environment or deployment secrets.
 
 The release order is intentionally strict:
+
+For the first hybrid-hosting rollout, split the reviewed change into two releases so GitHub Pages never gets ahead of its API dependency: first merge and deploy the backward-compatible Worker/session changes while the existing frontend remains published; verify the Worker; then merge the frontend/CSP/runtime changes so Pages publishes against the compatible API. Do not publish the new Pages runtime before the partitioned-cookie Worker is live. Future releases must preserve the same API-before-dependent-frontend compatibility rule.
 
 1. Merge a reviewed commit to `main` and require the `Validate release candidate` workflow to pass. Record the full 40-character SHA of the current `main` HEAD; branches are not immutable release inputs, and the release fails closed if `main` advances before deployment.
 2. Run and review every migration locally, including signup/login, password recovery, favorites, export, and deal-watch tests against isolated D1 state.
 3. Before changing production, run `wrangler d1 info fragrance-collect-db` and confirm the database uses the production storage backend. Then run `wrangler d1 time-travel info fragrance-collect-db` and record its current bookmark; D1 creates Time Travel history automatically, so this step records a known recovery point rather than initiating a restore. Review pending migrations with `wrangler d1 migrations list fragrance-collect-db --remote`, then apply approved migrations manually in filename order. The GitHub workflows contain no migration-apply command.
 4. Confirm `wrangler d1 migrations list` shows no pending migration and inspect the affected tables. Do not continue if the database and selected commit differ.
-5. Dispatch `Release Worker and static site to Cloudflare`, enter the immutable SHA, and make each recovery/migration/DNS acknowledgement. An unprivileged job first validates the inputs, main ancestry, build, and browser suite without deployment secrets. Only after it passes can a `production` environment reviewer approve the release job and expose its scoped credentials.
-6. The approved job independently rebuilds and retests that exact SHA, confirms only the names of the required pre-provisioned Worker secrets, and performs read-only checks that production D1 has exactly the selected commit's migration list and baseline schema. It then performs one `wrangler deploy` containing the Worker and Static Assets. It cannot publish the frontend ahead of the API.
-7. The workflow verifies `https://fragrancecollect.com/api/health`, the complete production API contract, same-origin routing, CSP, HSTS, clickjacking protections, and other static response headers. Manually smoke-test sign-in, reset, search, favorites, export, watches, contact, navigation, legal links, `robots.txt`, `sitemap.xml`, and the 404 page afterward.
+5. Dispatch `Release Cloudflare Worker API`, enter the immutable SHA, and make the recovery and migration acknowledgements. There is no DNS acknowledgement. An unprivileged job first validates the inputs, main ancestry, build, and browser suite without deployment secrets. Only after it passes can a `production` environment reviewer approve the release job and expose its scoped credentials.
+6. The approved job independently rebuilds and retests that exact SHA, confirms only the names of the required pre-provisioned Worker secrets, and performs read-only checks that production D1 has exactly the selected commit's migration list and baseline schema. It then runs `wrangler deploy` for the Worker API. GitHub Pages remains the canonical frontend and publishes from its configured repository source.
+7. The workflow verifies the Worker API at `https://weathered-mud-6ed5.joshuablaszczyk.workers.dev`, the GitHub Pages frontend, and the exact-origin credentialed CORS contract between them. Manually smoke-test sign-in, reset, search, favorites, export, watches, contact, navigation, legal links, `robots.txt`, `sitemap.xml`, and the 404 page afterward.
 
-### First Cloudflare DNS cutover
+### Hybrid hosting, OAuth, and email DNS
 
-DNS cutover is an external prerequisite and is never changed by the workflow. The domain currently uses registrar nameservers, so first create and review the Cloudflare zone, export the old DNS zone, and reproduce every web and email record—including MX, SPF, DKIM, DMARC, verification, and subdomain records. Confirm Universal SSL is active, bind both the apex and intended `www` behavior to the production Worker, verify Google OAuth origins and Resend domain records, and only then update nameservers at the registrar. DNSSEC must be transitioned according to the registrar and Cloudflare instructions; do not leave a stale DS record. Expect nameserver propagation and keep the previous zone export available.
+Keep the registrar nameservers and existing GitHub Pages web records in place. The repository `CNAME` must remain `fragrancecollect.com`; the Worker stays on its `workers.dev` hostname. Do not remove the four GitHub Pages apex A records, do not replace the `www` GitHub Pages CNAME, and do not add Worker custom-domain routes. Mail MX, SPF, DKIM, DMARC, autodiscovery, and mailbox records also remain at the current authoritative DNS provider.
 
-For the first cutover, follow [DNS_CUTOVER.md](DNS_CUTOVER.md) before merging the release PR. GitHub Pages currently publishes from `main`, while the release intentionally removes its `CNAME`; merging before the Cloudflare zone, TLS, and rollback records are ready could interrupt the live site. The Worker configuration binds both public hostnames and permanently redirects `www` to the canonical apex.
+Google sign-in and Resend sending still require one-time provider configuration. Follow the exact, no-cutover checklist in [DNS_CUTOVER.md](DNS_CUTOVER.md); despite its historical filename, that document now records the retained hybrid-hosting setup and explicitly prohibits a nameserver cutover.
 
-Do not acknowledge `READY_OR_ALREADY_CUT_OVER` until the Cloudflare zone, TLS certificate, custom domain, and email DNS have been independently checked. The deploy workflow does not create or repair any of them.
+### Rollback
 
-### Emergency cutover and rollback
-
-- If post-deploy checks fail but D1 is healthy, stop traffic changes and roll the Worker deployment back as one unit to the last known compatible Worker-and-assets version. Never roll back only the frontend.
+- If a Worker deploy fails and D1 is healthy, roll the Worker back to the last version compatible with the currently published frontend and schema. GitHub Pages and DNS remain untouched.
+- If a GitHub Pages frontend regression is published, revert the responsible repository commit through the normal reviewed Git workflow. Keep API compatibility while Pages rebuilds.
 - If a migration caused data or compatibility problems, first roll the Worker to code compatible with the current schema. Use the verified D1 recovery point/Time Travel procedure only after assessing writes made since that point; never invent a destructive down-migration during an incident.
-- During the initial nameserver cutover, restore the prior authoritative DNS only when the Cloudflare zone itself is unusable and the previous provider remains ready. DNS rollback is slow and must also preserve mail records; it is not the normal application rollback mechanism.
 - Revoke or rotate the scoped Cloudflare token immediately if workflow credentials may have been exposed. Environment approvals do not replace token scoping and audit-log review.
 
-No local validation command performs a remote migration, deployment, publication, push, pull request, or DNS change. Only the environment-gated manual workflow has deployment authority, and its D1 access is read-only.
+No local validation command performs a remote migration, Worker deployment, GitHub Pages publication, push, pull request, or DNS change. Only the environment-gated manual workflow has Worker deployment authority, and its D1 access is read-only. GitHub Pages publication follows the repository's separately configured Pages source.
 
 ## Author
 

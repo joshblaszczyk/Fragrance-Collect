@@ -136,6 +136,22 @@ async function requestJson(path, options) {
     return data;
 }
 
+async function confirmBrowserSession(expectedUser) {
+    const response = await fetch(`${WORKER_URL}/api/status`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { Accept: 'application/json' }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success || !data.user
+        || String(data.user.id || '') !== String(expectedUser?.id || '')) {
+        updateSharedNavUI(null);
+        updateAuthPage(null);
+        throw new Error('This browser blocked the secure cross-site session cookie. Use a current browser or allow partitioned cookies for this site, then try again.');
+    }
+    return data.user;
+}
+
 function setButtonBusy(button, busy, busyText = 'Working...') {
     if (!button) return;
     if (busy) {
@@ -283,9 +299,10 @@ async function submitSignin(event) {
             method: 'POST',
             body: JSON.stringify({ email, password })
         });
+        const confirmedUser = await confirmBrowserSession(data.user);
         setVerificationResend('');
-        updateSharedNavUI(data.user);
-        updateAuthPage(data.user);
+        updateSharedNavUI(confirmedUser);
+        updateAuthPage(confirmedUser);
         showStatus('Signed in successfully.');
     } catch (error) {
         if (error.verificationRequired || error.code === 'email_verification_required') {
@@ -344,9 +361,10 @@ async function submitSignup(event) {
             return;
         }
         if (!data.user) throw new Error('The account response was incomplete. Please try again.');
-        updateSharedNavUI(data.user);
-        updateAuthPage(data.user);
-        const firstName = String(data.user.name || 'there').split(/\s+/)[0];
+        const confirmedUser = await confirmBrowserSession(data.user);
+        updateSharedNavUI(confirmedUser);
+        updateAuthPage(confirmedUser);
+        const firstName = String(confirmedUser.name || 'there').split(/\s+/)[0];
         showOutcome({
             title: 'Account created',
             message: `Welcome, ${firstName}. Your account is ready.`,
@@ -447,8 +465,10 @@ async function verifyEmailAddress() {
         verifyToken = '';
         setVerificationResend('');
         if (data.user) {
-            updateSharedNavUI(data.user);
-            updateAuthPage(data.user);
+            const confirmedUser = await confirmBrowserSession(data.user);
+            data.user = confirmedUser;
+            updateSharedNavUI(confirmedUser);
+            updateAuthPage(confirmedUser);
         } else {
             updateSharedNavUI(null);
             updateAuthPage(null);
@@ -478,9 +498,10 @@ async function handleCredentialResponse(response) {
             method: 'POST',
             body: JSON.stringify({ token: response.credential })
         });
+        const confirmedUser = await confirmBrowserSession(data.user);
         setVerificationResend('');
-        updateSharedNavUI(data.user);
-        updateAuthPage(data.user);
+        updateSharedNavUI(confirmedUser);
+        updateAuthPage(confirmedUser);
         showStatus('Signed in successfully.');
     } catch (error) {
         if (error.code === 'account_link_required') {

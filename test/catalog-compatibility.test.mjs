@@ -176,10 +176,12 @@ test('supplemental sections expose compact retryable fallbacks and catalog retai
   assert.match(featureStyles, /\.has-compact-fallback/);
 });
 
-test('every environment keeps catalog, account, and static traffic on one origin', () => {
-  assert.match(siteConfig, /window\.API_BASE\s*=\s*window\.location\.origin/);
-  assert.match(siteConfig, /window\.CATALOG_API_BASE\s*=\s*window\.location\.origin/);
-  assert.doesNotMatch(siteConfig, /workers\.dev|api=deployed|catalog=local/);
+test('production uses the fixed Worker API while local development stays same-origin', () => {
+  assert.match(siteConfig, /https:\/\/weathered-mud-6ed5\.joshuablaszczyk\.workers\.dev/);
+  assert.match(siteConfig, /window\.location\.origin/);
+  assert.match(siteConfig, /window\.API_BASE\s*=/);
+  assert.match(siteConfig, /window\.CATALOG_API_BASE\s*=/);
+  assert.doesNotMatch(siteConfig, /api=deployed|catalog=local|\*\.workers\.dev/);
   assert.doesNotMatch(siteConfig, /window\.API_BASE\s*=\s*new URLSearchParams/);
 });
 

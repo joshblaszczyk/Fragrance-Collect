@@ -248,14 +248,19 @@ assert.equal(await evaluate(`(() => {
   return document.activeElement === checkbox;
 })()`), true, 'The required terms checkbox is not keyboard-focusable.');
 await evaluate(`
+  let smokeSignedIn = false;
   window.fetch = (input) => {
     const url = String(input);
+    const smokeUser = { id: '1', name: 'Smoke Test', email: 'smoke@example.com', hasPassword: true };
+    if (url.includes('/api/signup/email')) smokeSignedIn = true;
     const body = url.includes('/api/signup/email')
-      ? { success: true, user: { id: '1', name: 'Smoke Test', email: 'smoke@example.com', hasPassword: true } }
+      ? { success: true, user: smokeUser }
+      : url.includes('/api/status') && smokeSignedIn
+        ? { success: true, user: smokeUser }
       : url.includes('/api/password/forgot')
         ? { success: true, message: 'If an eligible account matches that email, a password reset link will arrive shortly.' }
         : { error: 'Not authenticated' };
-    const status = url.includes('/api/status') ? 401 : 200;
+    const status = url.includes('/api/status') && !smokeSignedIn ? 401 : 200;
     return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
   };
   document.getElementById('signup-name').value = 'Smoke Test';

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
+const deployedApiOrigin = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
 const source = readFileSync(resolve(root, '_headers'), 'utf8');
 const built = readFileSync(resolve(root, 'dist/_headers'), 'utf8');
 const failures = [];
@@ -52,8 +53,18 @@ for (const directive of ["default-src 'self'", "object-src 'none'", "base-uri 's
   if (!csp.includes(directive)) failures.push(`Content-Security-Policy is missing ${directive}`);
 }
 if (globalRule?.headers.get('x-frame-options') !== 'DENY') failures.push('global X-Frame-Options must be DENY');
-if (/unsafe-eval|\*\.workers\.dev|weathered-mud-6ed5/i.test(csp)) {
-  failures.push('Content-Security-Policy contains an unsafe evaluator or obsolete cross-origin Worker endpoint');
+if (/unsafe-eval|https:\/\/\*\.workers\.dev/i.test(csp)) {
+  failures.push('Content-Security-Policy contains an unsafe evaluator or wildcard Worker endpoint');
+}
+const connectSrc = csp.match(/(?:^|;)\s*connect-src\s+([^;]+)/i)?.[1] || '';
+if (!connectSrc.split(/\s+/).includes(deployedApiOrigin)) {
+  failures.push(`connect-src must allow the exact API origin ${deployedApiOrigin}`);
+}
+const configuredWorkerOrigins = [...new Set(
+  connectSrc.match(/https:\/\/[A-Za-z0-9.-]+\.workers\.dev/gi) || []
+)];
+if (configuredWorkerOrigins.length !== 1 || configuredWorkerOrigins[0] !== deployedApiOrigin) {
+  failures.push('connect-src must not allow any workers.dev origin except the deployed API');
 }
 
 for (const path of ['/auth', '/account', '/admin']) {

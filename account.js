@@ -1257,17 +1257,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function performSignOut() {
         try {
-            await fetch(`${window.API_BASE}/api/logout`, {
+            const response = await fetch(`${window.API_BASE}/api/logout`, {
                 method: 'POST',
                 credentials: 'include'
             });
-        } finally {
+            if (!response.ok) throw new Error(`Sign out failed (${response.status})`);
             if (typeof isUserLoggedIn !== 'undefined') {
                 isUserLoggedIn = false;
                 currentUser = null;
             }
 
             window.location.href = 'auth.html';
+        } catch (error) {
+            showNotification('We could not securely sign you out. Check your connection and try again.', 'error');
         }
     }
 

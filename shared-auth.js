@@ -62,14 +62,17 @@ async function checkSharedUserStatus() {
 
 async function handleSharedLogout() {
     try {
-        await fetch(`${window.API_BASE}/api/logout`, {
+        const response = await fetch(`${window.API_BASE}/api/logout`, {
             method: 'POST',
             credentials: 'include',
             headers: { Accept: 'application/json' }
         });
-    } finally {
+        if (!response.ok) throw new Error(`Sign out failed (${response.status})`);
         updateSharedNavUI(null);
         window.location.assign('auth.html');
+    } catch (error) {
+        console.error('Unable to sign out:', error);
+        window.alert('We could not securely sign you out. Check your connection and try again.');
     }
 }
 

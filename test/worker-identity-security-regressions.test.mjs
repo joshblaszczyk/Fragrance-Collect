@@ -11,6 +11,7 @@ const root = new URL('../', import.meta.url);
 const workerSource = readFileSync(new URL('weathered-mud-6ed5/src/integrated-worker.js', root), 'utf8');
 const wranglerSource = readFileSync(new URL('weathered-mud-6ed5/wrangler.toml', root), 'utf8');
 const migrationDirectory = new URL('weathered-mud-6ed5/migrations/', root);
+const deployedApiOrigin = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
 
 class D1StatementStub {
   constructor(database, sql, parameters = []) {
@@ -239,6 +240,10 @@ test('origins are exact and configured, local trust is opt-in, and session cooki
   assert.equal(isOriginAllowed('http://localhost:3000', '', { allowLocalOrigins: true }), true);
   assert.match(createSessionCookie('safe_token_value', 3600), /SameSite=Lax/);
   assert.doesNotMatch(createSessionCookie('safe_token_value', 3600), /Domain=/);
+  const crossSiteCookie = createSessionCookie('safe_token_value', 3600, { partitioned: true });
+  assert.match(crossSiteCookie, /SameSite=None/);
+  assert.match(crossSiteCookie, /Partitioned/);
+  assert.doesNotMatch(crossSiteCookie, /Domain=/);
 });
 
 test('legacy /main.html requests redirect to the canonical root without dropping the query', async () => {
@@ -252,7 +257,7 @@ test('legacy /main.html requests redirect to the canonical root without dropping
   assert.doesNotMatch(wranglerSource, /LOCAL_EMAIL_VERIFICATION_BYPASS|ALLOW_LOCAL_ORIGINS/);
 });
 
-test('www traffic redirects permanently to the canonical apex and both hostnames are bound', async () => {
+test('canonical-host redirect logic remains defensive while deployment stays on workers.dev', async () => {
   const response = await integratedWorker.fetch(new Request(
     'https://www.fragrancecollect.com/account?tab=favorites',
     { method: 'GET' }
@@ -260,8 +265,9 @@ test('www traffic redirects permanently to the canonical apex and both hostnames
   assert.equal(response.status, 308);
   assert.equal(response.headers.get('Location'), 'https://fragrancecollect.com/account?tab=favorites');
   assert.match(response.headers.get('Strict-Transport-Security') || '', /max-age=31536000/);
-  assert.match(wranglerSource, /pattern\s*=\s*"fragrancecollect\.com"\s*\ncustom_domain\s*=\s*true/);
-  assert.match(wranglerSource, /pattern\s*=\s*"www\.fragrancecollect\.com"\s*\ncustom_domain\s*=\s*true/);
+  assert.match(wranglerSource, /^workers_dev\s*=\s*true$/m);
+  assert.doesNotMatch(wranglerSource, /^custom_domain\s*=/m);
+  assert.doesNotMatch(wranglerSource, /^pattern\s*=\s*"(?:www\.)?fragrancecollect\.com"$/m);
   assert.match(wranglerSource, /run_worker_first\s*=\s*true/);
 });
 
@@ -272,7 +278,14 @@ test('local Wrangler custom-domain rewriting stays explicitly local and fails cl
   };
   const localResponse = await integratedWorker.fetch(new Request(
     'http://fragrancecollect.com/api/signup/email',
-    { method: 'OPTIONS', headers: { Origin: 'http://fragrancecollect.com' } }
+    {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'http://fragrancecollect.com',
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type'
+      }
+    }
   ), localEnvironment, {});
   assert.equal(localResponse.status, 204);
 
@@ -282,6 +295,8 @@ test('local Wrangler custom-domain rewriting stays explicitly local and fails cl
       method: 'OPTIONS',
       headers: {
         Origin: 'http://fragrancecollect.com',
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type',
         'CF-Connecting-IP': '203.0.113.10'
       }
     }
@@ -315,13 +330,23 @@ test('password signup requires mailbox proof, normalizes email, bounds sessions,
     assert.equal(unverifiedLogin.status, 403);
     assert.equal((await unverifiedLogin.json()).code, 'email_verification_required');
 
-    const verify = await integratedWorker.fetch(localJsonRequest('/api/signup/verify', 'POST', {
-      token: signupBody.verificationToken
+    const verify = await integratedWorker.fetch(new Request(`${deployedApiOrigin}/api/signup/verify`, {
+      method: 'POST',
+      headers: {
+        Origin: 'https://fragrancecollect.com',
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '192.0.2.10',
+        'User-Agent': 'security-regression-agent'
+      },
+      body: JSON.stringify({ token: signupBody.verificationToken })
     }), fixture.env, {});
     assert.equal(verify.status, 200, await verify.text());
     const verifiedCookie = cookieValue(verify);
     assert.ok(verifiedCookie);
-    assert.match(verify.headers.get('Set-Cookie'), /SameSite=Lax/);
+    assert.equal(verify.headers.get('Access-Control-Allow-Origin'), 'https://fragrancecollect.com');
+    assert.equal(verify.headers.get('Access-Control-Allow-Credentials'), 'true');
+    assert.match(verify.headers.get('Set-Cookie'), /SameSite=None/);
+    assert.match(verify.headers.get('Set-Cookie'), /Partitioned/);
 
     const replay = await integratedWorker.fetch(localJsonRequest('/api/signup/verify', 'POST', {
       token: signupBody.verificationToken
@@ -353,6 +378,8 @@ test('password signup requires mailbox proof, normalizes email, bounds sessions,
       email: 'case.owner@example.com', password
     }), fixture.env, {});
     assert.equal(freshLogin.status, 200, await freshLogin.text());
+    assert.match(freshLogin.headers.get('Set-Cookie'), /SameSite=Lax/);
+    assert.doesNotMatch(freshLogin.headers.get('Set-Cookie'), /Partitioned/);
     assert.equal(fixture.database.prepare('SELECT COUNT(*) AS total FROM user_sessions WHERE user_id = ?').get(storedUser.id).total, 8);
     const currentCookie = cookieValue(freshLogin);
 

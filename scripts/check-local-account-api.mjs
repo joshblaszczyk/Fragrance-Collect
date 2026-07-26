@@ -35,11 +35,17 @@ function assertResponse(result, expectedStatus, label) {
 }
 
 function captureSession(response) {
-  const cookie = response.headers.get('set-cookie')?.split(';', 1)[0] || '';
-  if (!cookie.startsWith('__Host-fragrance_session=')) {
+  const cookieHeaders = typeof response.headers.getSetCookie === 'function'
+    ? response.headers.getSetCookie()
+    : [response.headers.get('set-cookie') || ''];
+  const tokens = cookieHeaders.flatMap((value) => [
+    ...value.matchAll(/(?:^|,\s*)__Host-fragrance_session=([A-Za-z0-9_-]{40,100})(?=;)/g)
+  ].map((match) => match[1]));
+  const token = tokens.at(-1) || '';
+  if (!token) {
     throw new Error('The account API did not issue the expected secure session cookie.');
   }
-  sessionCookie = cookie;
+  sessionCookie = `__Host-fragrance_session=${token}`;
 }
 
 const health = await request('/api/health');

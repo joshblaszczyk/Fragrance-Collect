@@ -70,6 +70,7 @@ const RELEASE_CAPABILITIES = Object.freeze({
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const path = url.pathname;
     if (url.hostname === 'www.fragrancecollect.com') {
       url.protocol = 'https:';
       url.hostname = 'fragrancecollect.com';
@@ -88,7 +89,14 @@ export default {
       return handleOptions(request, env);
     }
 
-    const path = url.pathname;
+    if (path.startsWith('/api/') && !['GET', 'HEAD'].includes(request.method)
+      && !validateSiteOrigin(request, env)) {
+      return jsonResponse(
+        { error: 'Unauthorized origin' },
+        403,
+        privateSecurityHeaders(request.headers.get('Origin'), env)
+      );
+    }
 
     if (path === '/main.html' && (request.method === 'GET' || request.method === 'HEAD')) {
       url.pathname = '/';
@@ -591,7 +599,52 @@ function handleOptions(request, env) {
   if (!validateSiteOrigin(request, env)) {
     return new Response(null, { status: 403, headers: securityHeaders(null, env) });
   }
+  const requestedMethod = String(request.headers.get('Access-Control-Request-Method') || '').toUpperCase();
+  if (!['GET', 'POST', 'DELETE'].includes(requestedMethod)) {
+    return new Response(null, { status: 405, headers: securityHeaders(origin, env) });
+  }
+  const requestedHeaders = String(request.headers.get('Access-Control-Request-Headers') || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (requestedHeaders.some((value) => !['content-type', 'x-csrf-token'].includes(value))) {
+    return new Response(null, { status: 403, headers: securityHeaders(origin, env) });
+  }
   return new Response(null, { status: 204, headers: securityHeaders(origin, env) });
+}
+
+function usesPartitionedSessionCookie(request, env) {
+    if (!validateSiteOrigin(request, env)) return false;
+    try {
+      const siteOrigin = new URL(request.headers.get('Origin')).origin;
+      const apiOrigin = new URL(request.url).origin;
+      return siteOrigin !== apiOrigin && new URL(request.url).protocol === 'https:';
+    } catch {
+      return false;
+    }
+}
+
+function sessionCookieValues(request, env, token, maxAgeSeconds) {
+    const partitioned = usesPartitionedSessionCookie(request, env);
+    if (maxAgeSeconds > 0) {
+      const cookies = [
+        createSessionCookie('', -1),
+        createSessionCookie('', -1, { name: 'session_token' })
+      ];
+      cookies.push(createSessionCookie(token, maxAgeSeconds, partitioned
+        ? { sameSite: 'None', partitioned: true }
+        : { sameSite: 'Lax' }));
+      return cookies;
+    }
+    return [
+      createSessionCookie('', -1),
+      createSessionCookie('', -1, { sameSite: 'None', partitioned: true }),
+      createSessionCookie('', -1, { name: 'session_token' })
+    ];
+}
+
+function setSessionCookie(headers, request, env, token, maxAgeSeconds) {
+    headers['Set-Cookie'] = sessionCookieValues(request, env, token, maxAgeSeconds);
 }
 
 async function buildSessionRecord(request, userId) {
@@ -859,7 +912,14 @@ function scheduleBackgroundTask(ctx, taskFactory, failureMessage) {
 }
 
 function jsonResponse(data, status = 200, headers = {}) {
-  const finalHeaders = { ...headers, 'Content-Type': 'application/json' };
+  const cookieValues = Array.isArray(headers['Set-Cookie'])
+    ? headers['Set-Cookie']
+    : (headers['Set-Cookie'] ? [headers['Set-Cookie']] : []);
+  const headerValues = { ...headers };
+  delete headerValues['Set-Cookie'];
+  const finalHeaders = new Headers(headerValues);
+  finalHeaders.set('Content-Type', 'application/json');
+  for (const cookie of cookieValues) finalHeaders.append('Set-Cookie', cookie);
   return new Response(JSON.stringify(data), { status, headers: finalHeaders });
 }
 
@@ -1013,7 +1073,7 @@ async function handleEmailLogin(request, env) {
         }
 
         const token = await createSession(request, env, user.id);
-        headers['Set-Cookie'] = createSessionCookie(token, SESSION_TTL_SECONDS);
+        setSessionCookie(headers, request, env, token, SESSION_TTL_SECONDS);
 
         return jsonResponse({
           success: true,
@@ -1198,7 +1258,7 @@ async function handleVerifyEmail(request, env) {
         env.DB.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').bind(record.user_id)
       ]);
 
-      headers['Set-Cookie'] = createSessionCookie(session.token, SESSION_TTL_SECONDS);
+      setSessionCookie(headers, request, env, session.token, SESSION_TTL_SECONDS);
       return jsonResponse({
         success: true,
         message: 'Your email is verified.',
@@ -1501,7 +1561,7 @@ async function handleResetPassword(request, env) {
             env.DB.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(record.user_id)
         ]);
 
-        headers['Set-Cookie'] = createSessionCookie('', -1);
+        setSessionCookie(headers, request, env, '', -1);
         return jsonResponse({ success: true, message: 'Your password has been reset. Sign in with your new password.' }, 200, headers);
     } catch (error) {
         const bodyResponse = bodyErrorResponse(error, headers);
@@ -1519,13 +1579,13 @@ async function handleGetStatus(request, env) {
 
         const session = await getValidSession(env, token);
         if (!session) {
-            headers['Set-Cookie'] = createSessionCookie('', -1); // Expire cookie
+            setSessionCookie(headers, request, env, '', -1);
             return jsonResponse({ error: 'Invalid or expired session' }, 401, headers);
         }
 
         if (!await validateSessionSecurity(session, request)) {
             await deleteSession(env, token);
-            headers['Set-Cookie'] = createSessionCookie('', -1);
+            setSessionCookie(headers, request, env, '', -1);
             return jsonResponse({ error: 'Session security validation failed' }, 401, headers);
         }
 
@@ -1561,7 +1621,7 @@ async function handleLogout(request, env) {
         if (token) {
             await deleteSession(env, token);
         }
-        headers['Set-Cookie'] = createSessionCookie('', -1); // Expire cookie
+        setSessionCookie(headers, request, env, '', -1);
         return jsonResponse({ success: true, message: 'Logged out' }, 200, headers);
     } catch (error) {
         console.error('Error during logout:');
@@ -1695,7 +1755,7 @@ async function handleGoogleLogin(request, env) {
         }
 
         const sessionToken = await createSession(request, env, userId);
-        headers['Set-Cookie'] = createSessionCookie(sessionToken, SESSION_TTL_SECONDS);
+        setSessionCookie(headers, request, env, sessionToken, SESSION_TTL_SECONDS);
 
         return jsonResponse({
           success: true,
@@ -1795,7 +1855,7 @@ async function handleLinkGoogleIdentity(request, env) {
         env.DB.prepare('DELETE FROM user_sessions WHERE user_id = ?').bind(user.id),
         prepareSessionInsert(env, session)
       ]);
-      headers['Set-Cookie'] = createSessionCookie(session.token, SESSION_TTL_SECONDS);
+      setSessionCookie(headers, request, env, session.token, SESSION_TTL_SECONDS);
       return jsonResponse({
         success: true,
         message: 'Google is now linked to your account.',
@@ -1876,7 +1936,7 @@ async function handleDeleteAccount(request, env) {
       if (Number(result[1]?.meta?.changes || 0) < 1) {
         return jsonResponse({ error: 'Unable to delete this account.' }, 500, headers);
       }
-      headers['Set-Cookie'] = createSessionCookie('', -1);
+      setSessionCookie(headers, request, env, '', -1);
       return jsonResponse({ success: true, message: 'Your account has been deleted.' }, 200, headers);
     } catch (error) {
       const bodyResponse = bodyErrorResponse(error, headers);
@@ -5332,7 +5392,7 @@ async function handleChangePassword(request, env) {
           env.DB.prepare('DELETE FROM user_sessions WHERE user_id = ?').bind(user.id),
           prepareSessionInsert(env, session)
         ]);
-        headers['Set-Cookie'] = createSessionCookie(session.token, SESSION_TTL_SECONDS);
+        setSessionCookie(headers, request, env, session.token, SESSION_TTL_SECONDS);
 
         return jsonResponse({ success: true, message: 'Password changed successfully' }, 200, headers);
     } catch (error) {
@@ -5482,14 +5542,14 @@ async function getUserFromRequest(request, env) {
 
     const session = await getValidSession(env, token);
     if (!session) {
-        headers['Set-Cookie'] = createSessionCookie('', -1);
+        setSessionCookie(headers, request, env, '', -1);
         return { errorResponse: jsonResponse({ error: 'Invalid or expired session' }, 401, headers) };
     }
 
     // Quick validation before proceeding
     if (!await validateSessionSecurity(session, request)) {
        await deleteSession(env, token);
-       headers['Set-Cookie'] = createSessionCookie('', -1);
+       setSessionCookie(headers, request, env, '', -1);
        return { errorResponse: jsonResponse({ error: 'Session security validation failed' }, 401, headers) };
     }
 

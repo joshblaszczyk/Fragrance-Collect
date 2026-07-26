@@ -1,6 +1,16 @@
 (() => {
   const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
   const isLocal = localHosts.has(window.location.hostname);
+  const deployedSiteHosts = new Set(['fragrancecollect.com', 'www.fragrancecollect.com']);
+  const deployedApiOrigin = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
+  // Retire the browser-readable bearer token used by the legacy Pages build.
+  // Authentication is cookie-only; leaving the obsolete value behind would
+  // unnecessarily preserve a historical credential on upgraded browsers.
+  try {
+    window.localStorage.removeItem('session_token');
+  } catch {
+    // Storage can be unavailable in hardened/private browser contexts.
+  }
   if (window.location.protocol !== 'https:' && !isLocal) {
     window.location.replace(`https:${window.location.href.substring(window.location.protocol.length)}`);
     return;
@@ -53,11 +63,14 @@
     });
   }
 
-  // Static assets and API routes are served by one Worker origin in every
-  // environment. Keeping both bases first-party prevents cookie/CORS failures
-  // and avoids accidentally splitting account and catalog state.
-  window.API_BASE = window.location.origin;
-  window.CATALOG_API_BASE = window.location.origin;
+  // GitHub Pages serves the production frontend while the Cloudflare Worker
+  // owns API routes. Local development continues to use the current origin so
+  // Wrangler can serve the site and API together without a remote dependency.
+  const apiOrigin = deployedSiteHosts.has(window.location.hostname)
+    ? deployedApiOrigin
+    : window.location.origin;
+  window.API_BASE = apiOrigin;
+  window.CATALOG_API_BASE = apiOrigin;
   window.FRAGRANCE_RUNTIME = Object.freeze({
     localSite: isLocal,
     apiChannel: isLocal ? 'local-current' : 'deployed',

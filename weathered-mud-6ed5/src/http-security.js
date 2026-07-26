@@ -46,7 +46,7 @@ export function getSecurityHeaders(origin, configuredOrigins = '', options = {})
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-CSRF-Token',
     'Access-Control-Max-Age': '86400',
-    'Vary': 'Origin'
+    'Vary': 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers'
   };
 
   if (isOriginAllowed(origin, configuredOrigins, options)) {
@@ -59,8 +59,22 @@ export function getSecurityHeaders(origin, configuredOrigins = '', options = {})
 
 export function createSessionCookie(token, maxAgeSeconds, options = {}) {
   const encodedToken = encodeURIComponent(token);
-  const sameSite = ['Lax', 'Strict', 'None'].includes(options.sameSite) ? options.sameSite : 'Lax';
-  return `__Host-fragrance_session=${encodedToken}; Max-Age=${maxAgeSeconds}; Path=/; HttpOnly; SameSite=${sameSite}; Secure`;
+  const partitioned = options.partitioned === true;
+  const sameSite = partitioned
+    ? 'None'
+    : (['Lax', 'Strict', 'None'].includes(options.sameSite) ? options.sameSite : 'Lax');
+  const cookieName = options.name === 'session_token' ? 'session_token' : '__Host-fragrance_session';
+  const parts = [
+    `${cookieName}=${encodedToken}`,
+    `Max-Age=${maxAgeSeconds}`,
+    'Path=/',
+    'HttpOnly',
+    `SameSite=${sameSite}`,
+    'Secure'
+  ];
+  if (maxAgeSeconds <= 0) parts.push('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+  if (partitioned) parts.push('Partitioned');
+  return parts.join('; ');
 }
 
 export function escapeHtml(value) {

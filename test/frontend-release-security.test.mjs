@@ -4,11 +4,24 @@ import vm from 'node:vm';
 import test from 'node:test';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const DEPLOYED_API_ORIGIN = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
 
 async function runSiteConfig(location) {
   const source = await read('site-config.js');
   const replaced = [];
   const domReadyListeners = [];
+  const storage = new Map([['session_token', 'obsolete-browser-token']]);
+  const localStorage = {
+    getItem(name) {
+      return storage.has(name) ? storage.get(name) : null;
+    },
+    removeItem(name) {
+      storage.delete(name);
+    },
+    setItem(name, value) {
+      storage.set(name, String(value));
+    }
+  };
   const window = {
     location: { ...location },
     history: {
@@ -18,6 +31,7 @@ async function runSiteConfig(location) {
         replaced.push(url);
       }
     },
+    localStorage,
     matchMedia: () => ({ matches: true }),
     setTimeout,
     clearTimeout
@@ -33,6 +47,7 @@ async function runSiteConfig(location) {
   vm.runInNewContext(source, {
     window,
     document,
+    localStorage,
     URLSearchParams,
     Promise,
     performance
@@ -40,7 +55,7 @@ async function runSiteConfig(location) {
   return { window, replaced, domReadyListeners };
 }
 
-test('runtime keeps API and catalog first-party and removes one-time credentials', async () => {
+test('GitHub Pages runtime uses the exact deployed Worker and removes one-time credentials', async () => {
   const { window, replaced } = await runSiteConfig({
     hostname: 'fragrancecollect.com',
     protocol: 'https:',
@@ -50,8 +65,9 @@ test('runtime keeps API and catalog first-party and removes one-time credentials
     hash: '#account'
   });
 
-  assert.equal(window.API_BASE, 'https://fragrancecollect.com');
-  assert.equal(window.CATALOG_API_BASE, 'https://fragrancecollect.com');
+  assert.equal(window.API_BASE, DEPLOYED_API_ORIGIN);
+  assert.equal(window.CATALOG_API_BASE, DEPLOYED_API_ORIGIN);
+  assert.equal(window.localStorage.getItem('session_token'), null);
   assert.deepEqual(replaced, ['/auth.html?tab=signin#account']);
   assert.equal(Object.getOwnPropertyDescriptor(window, 'consumeFragranceAuthCredential')?.configurable, true);
   assert.equal(window.consumeFragranceAuthCredential('reset_token'), 'reset-secret');
@@ -143,13 +159,27 @@ test('every HTML entry point uses a document-level no-referrer fallback', async 
   }
 });
 
-test('all pages have retired the cross-site Worker and insecure-request rewriting', async () => {
-  const rootEntries = await readdir(new URL('..', import.meta.url));
-  const htmlFiles = rootEntries.filter((file) => file.endsWith('.html'));
-  assert.ok(htmlFiles.length >= 10);
-  for (const file of htmlFiles) {
+test('API-capable pages allow only the exact deployed Worker in connect-src', async () => {
+  const apiPages = [
+    'main.html',
+    'auth.html',
+    'account.html',
+    'admin.html',
+    'contact.html',
+    'customer-service.html',
+    'faq.html',
+    'privacy-policy.html',
+    'size-guide.html',
+    'terms-of-service.html'
+  ];
+  for (const file of apiPages) {
     const html = await read(file);
-    assert.doesNotMatch(html, /weathered-mud-6ed5\.joshuablaszczyk\.workers\.dev/, file);
+    const csp = html.match(/<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]+)"/i)?.[1] || '';
+    const connectSrc = csp.match(/(?:^|;)\s*connect-src\s+([^;]+)/i)?.[1] || '';
+    assert.match(connectSrc, new RegExp(`(?:^|\\s)${DEPLOYED_API_ORIGIN.replaceAll('.', '\\.')}(?:\\s|$)`), file);
+    assert.doesNotMatch(connectSrc, /https:\/\/\*\.workers\.dev/i, file);
+    const workerOrigins = [...new Set(connectSrc.match(/https:\/\/[A-Za-z0-9.-]+\.workers\.dev/gi) || [])];
+    assert.deepEqual(workerOrigins, [DEPLOYED_API_ORIGIN], file);
     assert.doesNotMatch(html, /upgrade-insecure-requests/, file);
   }
 });
@@ -170,7 +200,7 @@ test('versioned third-party icon styles carry subresource integrity metadata', a
   assert.ok(protectedStylesheets >= 9);
 });
 
-test('static response policy prevents framing and avoids caching account pages', async () => {
+test('Worker preview response policy prevents framing and avoids caching account pages', async () => {
   const [headers, build] = await Promise.all([read('_headers'), read('scripts/build-site.mjs')]);
   assert.match(headers, /frame-ancestors 'none'/);
   assert.match(headers, /X-Frame-Options: DENY/);

@@ -1,4 +1,4 @@
-name: Release Worker and static site to Cloudflare
+name: Release Cloudflare Worker API
 
 on:
   workflow_dispatch:
@@ -23,14 +23,6 @@ on:
         options:
           - NOT_CONFIRMED
           - CONFIRMED_MIGRATIONS_APPLIED
-      dns_cutover_ready:
-        description: Confirm Cloudflare zone, DNS/email records, TLS, and custom domain are ready
-        required: true
-        default: NOT_READY
-        type: choice
-        options:
-          - NOT_READY
-          - READY_OR_ALREADY_CUT_OVER
 
 permissions:
   contents: read
@@ -49,7 +41,6 @@ jobs:
           RELEASE_SHA: ${{ inputs.release_sha }}
           D1_ACK: ${{ inputs.d1_recovery_point }}
           MIGRATION_ACK: ${{ inputs.migrations_applied }}
-          DNS_ACK: ${{ inputs.dns_cutover_ready }}
         run: |
           if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo "release_sha must be a full lowercase commit SHA" >&2
@@ -57,7 +48,6 @@ jobs:
           fi
           test "$D1_ACK" = "CONFIRMED_D1_BOOKMARK"
           test "$MIGRATION_ACK" = "CONFIRMED_MIGRATIONS_APPLIED"
-          test "$DNS_ACK" = "READY_OR_ALREADY_CUT_OVER"
 
       - name: Check out authorized revision
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -98,7 +88,7 @@ jobs:
     timeout-minutes: 45
     environment:
       name: production
-      url: https://fragrancecollect.com
+      url: https://weathered-mud-6ed5.joshuablaszczyk.workers.dev
     steps:
       - name: Check out validated revision
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -145,21 +135,23 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run check:cloudflare-d1
 
-      # This workflow intentionally has no migration-apply command. The Worker
-      # and dist assets are deployed together only after the read-only D1 gate.
-      - name: Deploy one Worker and Static Assets unit
+      # This workflow intentionally has no migration-apply command. GitHub
+      # Pages publishes the canonical frontend separately; this deploy updates
+      # only the Worker API and its noindexed preview/fallback assets.
+      - name: Deploy Worker API
         working-directory: weathered-mud-6ed5
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm exec -- wrangler deploy
 
-      - name: Verify same-origin production API contract
+      - name: Verify production Worker API contract
         env:
-          API_HEALTH_URL: https://fragrancecollect.com/api/health
+          API_HEALTH_URL: https://weathered-mud-6ed5.joshuablaszczyk.workers.dev/api/health
         run: npm run api:check:production
 
-      - name: Verify production static security headers and cutover
+      - name: Verify GitHub Pages frontend and cross-origin Worker contract
         env:
           PRODUCTION_SITE_ORIGIN: https://fragrancecollect.com
+          PRODUCTION_API_ORIGIN: https://weathered-mud-6ed5.joshuablaszczyk.workers.dev
         run: npm run check:cloudflare-production

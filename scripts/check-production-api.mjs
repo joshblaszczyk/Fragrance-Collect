@@ -1,16 +1,23 @@
-const healthUrl = process.env.API_HEALTH_URL || 'https://fragrancecollect.com/api/health';
+const siteOrigin = String(process.env.PRODUCTION_SITE_ORIGIN || 'https://fragrancecollect.com').replace(/\/$/, '');
+const healthUrl = process.env.API_HEALTH_URL
+  || 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev/api/health';
 const expectedApiVersion = '1.2.0';
 const expectedSchemaVersion = '0006_identity_security';
 const apiBase = healthUrl.replace(/\/api\/health\/?(?:\?.*)?$/, '');
+const browserHeaders = { Accept: 'application/json', Origin: siteOrigin };
 
 const response = await fetch(healthUrl, {
-  headers: { Accept: 'application/json' },
+  headers: browserHeaders,
   signal: AbortSignal.timeout(10_000)
 });
 const body = await response.json().catch(() => ({}));
 
 if (!response.ok || body.status !== 'ok') {
   throw new Error(`Production API is not ready (${response.status}, status: ${body.status || 'unknown'}).`);
+}
+if (response.headers.get('access-control-allow-origin') !== siteOrigin
+  || response.headers.get('access-control-allow-credentials') !== 'true') {
+  throw new Error('Production API health check does not allow credentialed requests from the exact site origin.');
 }
 
 if (body.release?.apiVersion !== expectedApiVersion) {
@@ -39,32 +46,38 @@ if (body.capabilities?.accountDataExport !== true
 
 const contractChecks = await Promise.all([
   fetch(`${apiBase}/api/version`, {
-    headers: { Accept: 'application/json' },
+    headers: browserHeaders,
     signal: AbortSignal.timeout(10_000)
   }),
   fetch(`${apiBase}/api/products?q=fragrance&limit=1&sortBy=featured`, {
-    headers: { Accept: 'application/json' },
+    headers: browserHeaders,
     signal: AbortSignal.timeout(15_000)
   }),
   fetch(`${apiBase}/api/deals`, {
-    headers: { Accept: 'application/json' },
+    headers: browserHeaders,
     signal: AbortSignal.timeout(15_000)
   }),
   fetch(`${apiBase}/api/advertisers`, {
-    headers: { Accept: 'application/json' },
+    headers: browserHeaders,
     signal: AbortSignal.timeout(15_000)
   }),
   fetch(`${apiBase}/api/user/export`, {
-    headers: { Accept: 'application/json' },
+    headers: browserHeaders,
     signal: AbortSignal.timeout(10_000)
   }),
   fetch(`${apiBase}/api/user/alerts`, {
-    headers: { Accept: 'application/json' },
+    headers: browserHeaders,
     signal: AbortSignal.timeout(10_000)
   })
 ]);
 
 const [versionResponse, productsResponse, dealsResponse, advertisersResponse, exportResponse, alertsResponse] = contractChecks;
+for (const contractResponse of contractChecks) {
+  if (contractResponse.headers.get('access-control-allow-origin') !== siteOrigin
+    || contractResponse.headers.get('access-control-allow-credentials') !== 'true') {
+    throw new Error(`API endpoint ${new URL(contractResponse.url).pathname} rejected the exact site origin.`);
+  }
+}
 if (!versionResponse.ok) {
   throw new Error(`API version endpoint is unavailable (${versionResponse.status}).`);
 }

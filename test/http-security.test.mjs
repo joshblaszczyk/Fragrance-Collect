@@ -60,6 +60,19 @@ test('creates a host-only HttpOnly session cookie using seconds', () => {
   assert.match(cookie, /SameSite=Lax/);
   assert.match(cookie, /Secure/);
   assert.doesNotMatch(cookie, /Domain=/);
+  assert.doesNotMatch(cookie, /Partitioned/);
+});
+
+test('creates a CHIPS cookie for the cross-site GitHub Pages session', () => {
+  const cookie = createSessionCookie('cross-site token', 86400, { partitioned: true });
+
+  assert.match(cookie, /^__Host-fragrance_session=cross-site%20token;/);
+  assert.match(cookie, /Path=\//);
+  assert.match(cookie, /HttpOnly/);
+  assert.match(cookie, /SameSite=None/);
+  assert.match(cookie, /Secure/);
+  assert.match(cookie, /Partitioned/);
+  assert.doesNotMatch(cookie, /Domain=/);
 });
 
 test('escapes contact content before inserting it into HTML email', () => {
