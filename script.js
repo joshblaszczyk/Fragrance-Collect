@@ -1519,7 +1519,7 @@ document.addEventListener('fragrance:auth-change', async (event) => {
         return;
     }
 
-    if (window.location.hash === '#favorites') showFavoritesView({ reload: false });
+    if (window.location.hash === '#favorites') showFavoritesView({ reload: false, reveal: true });
     if (navigator.onLine && pendingFavoriteOperations.size > 0) {
         await syncPendingFavoriteOperations();
     } else {
@@ -1545,7 +1545,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (window.location.hash !== '#favorites') {
                 window.history.pushState({ ...window.history.state, catalogView: 'favorites' }, '', '#favorites');
             }
-            showFavoritesView();
+            showFavoritesView({ reveal: true });
         });
     } else {
     }
@@ -1669,7 +1669,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.addEventListener('hashchange', () => {
     if (window.location.hash === '#favorites') {
         if (isAuthenticated()) {
-            showFavoritesView();
+            showFavoritesView({ reveal: true });
         } else {
             window.location.href = 'auth.html?tab=signin';
         }
@@ -3867,7 +3867,23 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 
-function showFavoritesView({ reload = true } = {}) {
+function revealFavoritesSection() {
+    window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+            const favoritesSection = document.getElementById('favorites');
+            if (!favoritesSection || favoritesSection.hidden) return;
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            favoritesSection.scrollIntoView({
+                behavior: reducedMotion ? 'auto' : 'smooth',
+                block: 'start'
+            });
+            if (!favoritesSection.hasAttribute('tabindex')) favoritesSection.tabIndex = -1;
+            favoritesSection.focus({ preventScroll: true });
+        });
+    });
+}
+
+function showFavoritesView({ reload = true, reveal = false } = {}) {
     // Check if user is logged in using shared auth system
 
     if (!isAuthenticated()) {
@@ -3891,6 +3907,7 @@ function showFavoritesView({ reload = true } = {}) {
 
     authUI.favoritesSection.hidden = false;
     if (reload) loadUserFavorites(activeFavoriteOwner);
+    if (reveal) revealFavoritesSection();
 }
 
 function showMainContentView() {

@@ -136,7 +136,12 @@ const mockScript = `
     }));
     window.fetch = (input, options = {}) => {
       const url = String(input);
-      if (url.includes('/api/status')) return json({ error: 'Not authenticated' }, 401);
+      if (url.includes('/api/status')) {
+        const authenticated = new URLSearchParams(location.search).get('smoke-authenticated') === '1';
+        return authenticated
+          ? json({ success: true, user: { id: 'smoke-header-user', name: 'Smoke User', email: 'smoke@example.com', hasPassword: true } })
+          : json({ error: 'Not authenticated' }, 401);
+      }
       if (url.includes('/api/products')) return json({
         products: [{ id: 'smoke-1', name: 'Smoke Test Fragrance', brand: 'Test House', advertiser: 'Test Retailer', price: 95, currency: 'USD', image: '/assets/images/chanel-card.webp', link: 'https://example.com/fragrance', shippingCost: null, availability: 'in_stock', size: ['3.4 oz'] }],
         total: 1, page: 1, limit: 25, hasMore: false, searchQuery: 'fragrance', optimization: { exactMatchApplied: false }
@@ -183,6 +188,47 @@ assert.match(mainResult.focusedClass, /mobile-menu-close/, 'Focus did not enter 
 assert.equal(mainResult.ratingRows, 0, 'A catalog item without rating evidence rendered a rating row.');
 assert.equal(mainResult.falseFreeShippingClaims, 0, 'A catalog item without shipping evidence rendered a free-shipping claim.');
 assert.equal(mainResult.unknownShippingLabels, 1, 'Unknown shipping evidence was not labeled honestly.');
+
+await navigate('/?smoke-authenticated=1');
+const headerFavoriteResult = await evaluate(`
+  (async () => {
+    const trigger = document.querySelector('.favorites-btn');
+    trigger.click();
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    const section = document.getElementById('favorites');
+    const rect = section.getBoundingClientRect();
+    const savedMenu = document.querySelector('.saved-items-menu');
+    const directResult = {
+      hash: location.hash,
+      hidden: section.hidden,
+      focused: document.activeElement === section,
+      scrollY,
+      targetVisible: rect.top < innerHeight && rect.bottom > 0,
+      menuHidden: savedMenu.getAttribute('aria-hidden'),
+      menuInert: savedMenu.inert,
+      triggerVisible: trigger.getClientRects().length > 0,
+      overflow: document.documentElement.scrollWidth > innerWidth
+    };
+    trigger.focus();
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    directResult.keyboardMenuOpen = trigger.getAttribute('aria-expanded');
+    directResult.firstOptionFocused = document.activeElement === savedMenu.querySelector('.saved-items-menu__item');
+    return directResult;
+  })()
+`);
+assert.equal(headerFavoriteResult.hash, '#favorites', 'The authenticated header heart did not select the Favorites view.');
+assert.equal(headerFavoriteResult.hidden, false, 'The authenticated header heart left Favorites hidden.');
+assert.equal(headerFavoriteResult.focused, true, 'The authenticated header heart did not focus the revealed Favorites section.');
+assert.ok(headerFavoriteResult.scrollY > 0, 'The authenticated header heart did not move the viewport to Favorites.');
+assert.equal(headerFavoriteResult.targetVisible, true, 'The Favorites section remained outside the viewport after the header-heart click.');
+assert.equal(headerFavoriteResult.menuHidden, 'true', 'The direct Favorites action left a popover covering the revealed section.');
+assert.equal(headerFavoriteResult.menuInert, true, 'The closed saved-items popover remained interactive.');
+assert.equal(headerFavoriteResult.triggerVisible, true, 'The header heart is missing at the mobile breakpoint.');
+assert.equal(headerFavoriteResult.overflow, false, 'The Favorites navigation introduced horizontal overflow.');
+assert.equal(headerFavoriteResult.keyboardMenuOpen, 'true', 'ArrowDown did not expose the saved-items options.');
+assert.equal(headerFavoriteResult.firstOptionFocused, true, 'Keyboard focus did not enter the saved-items options.');
+await pressEscape();
 
 for (const width of [900, 1024]) {
   await send('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: false });
@@ -344,6 +390,30 @@ assert.deepEqual(await evaluate(`(() => ({
   visualValue: document.getElementById('intensity').closest('.fc-select')?.querySelector('.fc-select__value')?.textContent
 }))()`), { nativeValue: 'strong', visualValue: 'Strong' }, 'Asynchronous account preferences did not synchronize the visible dropdown value.');
 assert.equal(await evaluate(`document.getElementById('google-method-status').textContent`), 'Not connected', 'An unlinked password account was labeled as Google-connected.');
+await evaluate(`document.querySelector('.account-sidebar a[href="#alerts"]').click()`);
+await new Promise((resolve) => setTimeout(resolve, 250));
+const dealWatchEmptyState = await evaluate(`(() => {
+  const state = document.getElementById('alerts-empty-state');
+  const action = state.querySelector('.account-empty-state__action');
+  const stateRect = state.getBoundingClientRect();
+  const actionRect = action.getBoundingClientRect();
+  return {
+    visible: !state.hidden && stateRect.width > 0 && stateRect.height > 0,
+    copy: state.textContent.replace(/\\s+/g, ' ').trim(),
+    actionDisplay: getComputedStyle(action).display,
+    shimmerDisplay: getComputedStyle(action, '::before').display,
+    actionInside: actionRect.left >= stateRect.left && actionRect.right <= stateRect.right
+      && actionRect.top >= stateRect.top && actionRect.bottom <= stateRect.bottom,
+    overflow: document.documentElement.scrollWidth > innerWidth
+  };
+})()`);
+assert.equal(dealWatchEmptyState.visible, true, 'The empty Deal Watches state did not render.');
+assert.match(dealWatchEmptyState.copy, /No active deal watches/);
+assert.equal(dealWatchEmptyState.actionDisplay, 'flex', 'The Deal Watches action fell back to the broken inline layout.');
+assert.equal(dealWatchEmptyState.shimmerDisplay, 'none', 'The old button shimmer still escapes the Deal Watches action.');
+assert.equal(dealWatchEmptyState.actionInside, true, 'The Deal Watches action overlaps or escapes its empty-state panel.');
+assert.equal(dealWatchEmptyState.overflow, false, 'The Deal Watches empty state introduces horizontal overflow.');
+await evaluate(`document.querySelector('.account-sidebar a[href="#profile"]').click()`);
 await evaluate(`(() => {
   document.getElementById('google-link-current-password').value = 'CurrentPass1!';
   document.querySelector('#google-link-button .smoke-google-button').click();

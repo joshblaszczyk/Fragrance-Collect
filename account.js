@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let deletionGoogleRenderTimer;
     let passwordSetupGoogleRenderAttempts = 0;
     let passwordSetupGoogleRenderTimer;
+    let googleLinkInFlight = false;
 
     function hasGoogleIdentity() {
         return user?.hasGoogleIdentity === true;
@@ -164,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('google-link-controls')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     return;
                 }
-                switchPanel(targetId);
+                switchPanel(targetId, { reveal: true });
                 window.history.pushState(null, '', `#${targetId}`);
             });
         });
@@ -383,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function linkGoogleIdentity(credential) {
+        if (googleLinkInFlight) return;
         const controls = document.getElementById('google-link-controls');
         const passwordInput = document.getElementById('google-link-current-password');
         const host = document.getElementById('google-link-button');
@@ -395,7 +397,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         passwordInput?.removeAttribute('aria-invalid');
+        googleLinkInFlight = true;
         controls?.setAttribute('aria-busy', 'true');
+        if (controls) controls.inert = true;
         host?.setAttribute('aria-disabled', 'true');
         setGoogleLinkStatus('Confirming this Google account…');
         try {
@@ -438,7 +442,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             setGoogleLinkStatus(error.message, true);
         } finally {
+            googleLinkInFlight = false;
             controls?.removeAttribute('aria-busy');
+            if (controls) controls.inert = false;
             host?.removeAttribute('aria-disabled');
         }
     }
@@ -616,12 +622,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function switchPanel(targetId) {
+    function switchPanel(targetId, { reveal = false } = {}) {
         const validTarget = [...ui.panels].some((panel) => panel.id === targetId) ? targetId : 'profile';
+        let targetPanel = null;
         ui.panels.forEach(panel => {
             const isActive = panel.id === validTarget;
             panel.classList.toggle('active', isActive);
             panel.hidden = !isActive;
+            if (isActive) targetPanel = panel;
         });
         ui.sidebarLinks.forEach(link => {
             const isActive = link.getAttribute('href') === `#${validTarget}`;
@@ -629,12 +637,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isActive) link.setAttribute('aria-current', 'page');
             else link.removeAttribute('aria-current');
         });
+        if (reveal && targetPanel) {
+            window.requestAnimationFrame(() => {
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                targetPanel.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+                const heading = targetPanel.querySelector('h2');
+                if (heading) {
+                    heading.tabIndex = -1;
+                    heading.focus({ preventScroll: true });
+                }
+            });
+        }
     }
 
     function handleInitialTab() {
         const hash = window.location.hash.substring(1);
         if (hash) {
-            switchPanel(hash);
+            switchPanel(hash, { reveal: true });
         } else {
             switchPanel('profile');
         }
@@ -1599,7 +1618,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { Accept: 'application/json' }
             });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(data.error || 'Unable to load deal watches.');
+            if (!response.ok || data.success === false) {
+                throw new Error(data.error || 'Unable to load deal watches.');
+            }
             const alerts = Array.isArray(data.alerts) ? data.alerts : [];
             ui.alertsList.replaceChildren();
             if (!alerts.length) {
@@ -1616,8 +1637,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     back_in_stock: 'Stock watch',
                     deal: 'Promotion watch'
                 }[alert.alert_type] || 'Deal watch';
+                const lastTriggered = alert.last_triggered_at ? new Date(alert.last_triggered_at) : null;
+                const lastTriggeredLabel = lastTriggered && !Number.isNaN(lastTriggered.getTime())
+                    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(lastTriggered)
+                    : '';
                 const target = Number(alert.is_active) === 0
-                    ? `Triggered${alert.last_triggered_at ? ` on ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(alert.last_triggered_at))}` : ''}`
+                    ? `Triggered${lastTriggeredLabel ? ` on ${lastTriggeredLabel}` : ''}`
                     : alert.alert_type === 'price_drop'
                     ? `At or below ${formatAlertPrice(alert.target_price, alert.currency)}`
                     : alert.alert_type === 'back_in_stock' ? 'When listed in stock' : 'When a promotion is found';

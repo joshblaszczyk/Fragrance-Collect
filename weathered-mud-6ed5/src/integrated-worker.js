@@ -1689,6 +1689,7 @@ async function handleGoogleLogin(request, env) {
     try {
         const body = await readJsonBody(request);
         const token = typeof (body.credential || body.token) === 'string' ? (body.credential || body.token).trim() : '';
+        const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : '';
         if (!token) {
             return jsonResponse({ error: 'Google token is required.' }, 400, headers);
         }
@@ -1760,8 +1761,10 @@ async function handleGoogleLogin(request, env) {
           }
         } else {
           const emailOwner = await env.DB.prepare(`
-            SELECT u.id, u.password_hash, u.email_verified_at,
-                   (SELECT COUNT(*) FROM user_identities i WHERE i.user_id = u.id) AS identity_count
+            SELECT u.id, u.name, u.email, u.picture, u.password_hash, u.email_verified_at,
+                   (SELECT COUNT(*) FROM user_identities i WHERE i.user_id = u.id) AS identity_count,
+                   (SELECT provider_subject FROM user_identities i
+                    WHERE i.user_id = u.id AND i.provider = 'google') AS linked_google_subject
             FROM users u WHERE u.email = ? COLLATE NOCASE
           `).bind(email).first();
           if (emailOwner) {
@@ -1777,6 +1780,77 @@ async function handleGoogleLogin(request, env) {
                 verificationRequired: true,
                 recoveryEmail: email
               }, 409, headers);
+            }
+            if (emailOwner.password_hash && currentPassword) {
+              if (currentPassword.length > MAX_PASSWORD_CHARACTERS
+                || new TextEncoder().encode(currentPassword).byteLength > MAX_PASSWORD_BYTES) {
+                return jsonResponse({
+                  error: 'Unable to verify this sign-in.',
+                  code: 'reauthentication_failed'
+                }, 401, headers);
+              }
+              if (await isRateLimited(env, accountPrincipal(email), 'login-account', 10, 15 * 60 * 1000)) {
+                return jsonResponse({ error: 'Too many login attempts. Please try again later.' }, 429, headers);
+              }
+              const passwordResult = await verifyPasswordRecord(currentPassword, emailOwner.password_hash);
+              if (!passwordResult.valid) {
+                return jsonResponse({
+                  error: 'Unable to verify this sign-in.',
+                  code: 'reauthentication_failed'
+                }, 401, headers);
+              }
+              if (emailOwner.linked_google_subject && emailOwner.linked_google_subject !== subject) {
+                return jsonResponse({
+                  error: 'This account already has a different Google sign-in connected.',
+                  code: 'google_identity_conflict'
+                }, 409, headers);
+              }
+
+              const verifiedAt = new Date().toISOString();
+              const replacementHash = passwordResult.needsRehash
+                ? await hashPasswordPBKDF2(currentPassword)
+                : null;
+              const session = await buildSessionRecord(request, emailOwner.id);
+              const linkResults = await env.DB.batch([
+                env.DB.prepare(`
+                  INSERT INTO user_identities (
+                    id, user_id, provider, provider_subject, email, email_verified_at
+                  ) VALUES (?, ?, 'google', ?, ?, ?)
+                `).bind(crypto.randomUUID(), emailOwner.id, subject, email, verifiedAt),
+                env.DB.prepare(`
+                  UPDATE users
+                  SET email_verified_at = COALESCE(email_verified_at, ?),
+                      picture = COALESCE(picture, ?),
+                      password_hash = COALESCE(?, password_hash),
+                      updated_at = CURRENT_TIMESTAMP
+                  WHERE id = ?
+                `).bind(
+                  verifiedAt, normalizeHttpsUrl(payload.picture), replacementHash, emailOwner.id
+                ),
+                env.DB.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').bind(emailOwner.id),
+                env.DB.prepare('DELETE FROM user_sessions WHERE user_id = ?').bind(emailOwner.id),
+                prepareSessionInsert(env, session)
+              ]);
+              if (Number(linkResults[0]?.meta?.changes || 0) !== 1
+                || Number(linkResults[1]?.meta?.changes || 0) !== 1
+                || Number(linkResults[4]?.meta?.changes || 0) !== 1) {
+                throw new Error('Google sign-in completion invariant failed.');
+              }
+
+              setSessionCookie(headers, request, env, session.token, SESSION_TTL_SECONDS);
+              return jsonResponse({
+                success: true,
+                user: {
+                  id: emailOwner.id,
+                  name: emailOwner.name,
+                  email: emailOwner.email,
+                  picture: emailOwner.picture || normalizeHttpsUrl(payload.picture),
+                  hasPassword: true,
+                  hasGoogleIdentity: true,
+                  identityLinkRequired: false,
+                  emailVerified: true
+                }
+              }, 200, headers);
             }
             return jsonResponse({
               error: 'An account already uses this email. Sign in first, then explicitly link Google in account settings.',
@@ -1880,27 +1954,59 @@ async function handleLinkGoogleIdentity(request, env) {
 
       const verifiedAt = new Date().toISOString();
       const session = await buildSessionRecord(request, user.id);
-      await env.DB.batch([
+      const linkResults = await env.DB.batch([
         env.DB.prepare(`
           INSERT INTO user_identities (
             id, user_id, provider, provider_subject, email, email_verified_at
           ) VALUES (?, ?, 'google', ?, ?, ?)
-          ON CONFLICT(user_id, provider) DO UPDATE SET
-            provider_subject = excluded.provider_subject,
-            email = excluded.email,
-            email_verified_at = excluded.email_verified_at,
-            updated_at = CURRENT_TIMESTAMP
+          ON CONFLICT DO NOTHING
         `).bind(crypto.randomUUID(), user.id, subject, email, verifiedAt),
         env.DB.prepare(`
           UPDATE users
           SET email_verified_at = COALESCE(email_verified_at, ?),
               picture = COALESCE(picture, ?), updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).bind(verifiedAt, normalizeHttpsUrl(payload.picture), user.id),
-        env.DB.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').bind(user.id),
-        env.DB.prepare('DELETE FROM user_sessions WHERE user_id = ?').bind(user.id),
-        prepareSessionInsert(env, session)
+          WHERE id = ? AND EXISTS (
+            SELECT 1 FROM user_identities
+            WHERE user_id = ? AND provider = 'google' AND provider_subject = ?
+          )
+        `).bind(verifiedAt, normalizeHttpsUrl(payload.picture), user.id, user.id, subject),
+        env.DB.prepare(`
+          DELETE FROM email_verification_tokens
+          WHERE user_id = ? AND EXISTS (
+            SELECT 1 FROM user_identities
+            WHERE user_id = ? AND provider = 'google' AND provider_subject = ?
+          )
+        `).bind(user.id, user.id, subject),
+        env.DB.prepare(`
+          DELETE FROM user_sessions
+          WHERE user_id = ? AND EXISTS (
+            SELECT 1 FROM user_identities
+            WHERE user_id = ? AND provider = 'google' AND provider_subject = ?
+          )
+        `).bind(user.id, user.id, subject),
+        env.DB.prepare(`
+          INSERT INTO user_sessions (id, user_id, token, expires_at, client_ip, user_agent, fingerprint)
+          SELECT ?, ?, ?, ?, ?, ?, ?
+          WHERE EXISTS (
+            SELECT 1 FROM user_identities
+            WHERE user_id = ? AND provider = 'google' AND provider_subject = ?
+          )
+        `).bind(
+          session.id, session.userId, session.tokenHash, session.expiresAt,
+          session.clientIP, session.userAgent, session.fingerprint, user.id, subject
+        )
       ]);
+      const establishedIdentity = await env.DB.prepare(`
+        SELECT provider_subject FROM user_identities
+        WHERE user_id = ? AND provider = 'google'
+      `).bind(user.id).first();
+      if (establishedIdentity?.provider_subject !== subject
+        || Number(linkResults[4]?.meta?.changes || 0) !== 1) {
+        return jsonResponse({
+          error: 'This account already has a different Google sign-in connected.',
+          code: 'google_identity_conflict'
+        }, 409, headers);
+      }
       setSessionCookie(headers, request, env, session.token, SESSION_TTL_SECONDS);
       return jsonResponse({
         success: true,

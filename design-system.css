@@ -2851,6 +2851,175 @@ body:has(.account-container) {
     background: var(--fc-line);
 }
 
+.fragrance-header .saved-items-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.fragrance-header .saved-items-dropdown.active > .favorites-btn {
+    border-color: rgba(214, 181, 102, 0.48);
+    background: rgba(214, 181, 102, 0.14);
+    color: var(--fc-gold-soft);
+}
+
+.fragrance-header .saved-items-menu {
+    position: absolute;
+    z-index: 1300;
+    top: calc(100% + 10px);
+    right: 0;
+    display: block;
+    width: min(330px, calc(100vw - 24px));
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 92% 2%, rgba(214, 181, 102, 0.1), transparent 150px),
+        #151518;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.56);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition:
+        opacity var(--fc-duration-fast) var(--fc-ease),
+        visibility 0s linear var(--fc-duration-fast),
+        transform var(--fc-duration-fast) var(--fc-ease);
+}
+
+.fragrance-header .saved-items-menu::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 12px;
+}
+
+.fragrance-header .saved-items-dropdown.active .saved-items-menu {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition-delay: 0s;
+}
+
+.fragrance-header .saved-items-menu[aria-hidden='true'] {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(-6px) !important;
+}
+
+.fragrance-header .saved-items-menu__heading {
+    display: grid;
+    gap: 3px;
+    padding: 10px 11px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+}
+
+.fragrance-header .saved-items-menu__heading span {
+    color: var(--fc-gold);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.fragrance-header .saved-items-menu__heading strong {
+    color: var(--fc-paper-bright);
+    font-family: var(--fc-font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.fragrance-header .saved-items-menu__item {
+    display: grid;
+    width: 100%;
+    min-height: 66px;
+    grid-template-columns: 38px minmax(0, 1fr) 16px;
+    align-items: center;
+    gap: 11px;
+    margin-top: 4px;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--fc-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--fc-duration-fast) var(--fc-ease), color var(--fc-duration-fast) var(--fc-ease);
+}
+
+.fragrance-header .saved-items-menu__item:hover,
+.fragrance-header .saved-items-menu__item:focus-visible {
+    background: rgba(214, 181, 102, 0.1);
+    color: var(--fc-paper-bright);
+}
+
+.fragrance-header .saved-items-menu__icon {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 1px solid rgba(214, 181, 102, 0.26);
+    border-radius: 9px;
+    background: rgba(214, 181, 102, 0.07);
+    color: var(--fc-gold-soft);
+}
+
+.fragrance-header .saved-items-menu__copy {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.fragrance-header .saved-items-menu__copy strong {
+    color: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.fragrance-header .saved-items-menu__copy span {
+    overflow: hidden;
+    color: var(--fc-muted);
+    font-size: 0.7rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fragrance-header .saved-items-menu__arrow {
+    color: rgba(214, 181, 102, 0.7);
+    font-size: 0.7rem;
+}
+
+.fragrance-header .saved-items-menu__status {
+    margin: 6px 5px 2px;
+    padding: 9px 7px 3px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--fc-muted);
+    font-size: 0.68rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
+@media (max-width: 520px) {
+    .fragrance-header .saved-items-dropdown > .favorites-btn {
+        display: grid;
+    }
+
+    .fragrance-header .saved-items-menu {
+        position: fixed;
+        top: calc(var(--fc-header-height) + 8px);
+        right: 12px;
+        left: 12px;
+        width: auto;
+    }
+}
+
 .filter-container .search-input {
     padding-right: 98px;
     appearance: none;

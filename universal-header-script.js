@@ -56,6 +56,97 @@ function setAuthVisibility() {
     });
 }
 
+function createSavedItemsMenu(favoritesButton) {
+    if (!favoritesButton) return {};
+    const existingDropdown = favoritesButton.closest('.saved-items-dropdown');
+    if (existingDropdown) {
+        return {
+            dropdown: existingDropdown,
+            menu: existingDropdown.querySelector('.saved-items-menu'),
+            status: existingDropdown.querySelector('.saved-items-menu__status')
+        };
+    }
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'saved-items-dropdown';
+    const menu = document.createElement('div');
+    menu.className = 'saved-items-menu';
+    menu.id = 'saved-items-menu';
+    menu.setAttribute('aria-hidden', 'true');
+    menu.setAttribute('aria-label', 'Saved items');
+    menu.inert = true;
+
+    const heading = document.createElement('div');
+    heading.className = 'saved-items-menu__heading';
+    const eyebrow = document.createElement('span');
+    eyebrow.textContent = 'Your collection';
+    const title = document.createElement('strong');
+    title.textContent = 'Saved items';
+    heading.append(eyebrow, title);
+    menu.appendChild(heading);
+
+    const createAction = ({ destination, icon, title: actionTitle, description }) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'saved-items-menu__item';
+        button.dataset.savedDestination = destination;
+
+        const iconWrap = document.createElement('span');
+        iconWrap.className = 'saved-items-menu__icon';
+        iconWrap.setAttribute('aria-hidden', 'true');
+        const iconElement = document.createElement('i');
+        iconElement.className = `fas ${icon}`;
+        iconWrap.appendChild(iconElement);
+
+        const copy = document.createElement('span');
+        copy.className = 'saved-items-menu__copy';
+        const label = document.createElement('strong');
+        label.textContent = actionTitle;
+        const detail = document.createElement('span');
+        detail.textContent = description;
+        copy.append(label, detail);
+
+        const arrow = document.createElement('i');
+        arrow.className = 'fas fa-arrow-right saved-items-menu__arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        button.append(iconWrap, copy, arrow);
+        menu.appendChild(button);
+        return button;
+    };
+
+    createAction({
+        destination: 'favorites',
+        icon: 'fa-heart',
+        title: 'Favorite fragrances',
+        description: 'Review the offers you saved'
+    });
+    createAction({
+        destination: 'watches',
+        icon: 'fa-bell',
+        title: 'Deal watches',
+        description: 'Price, stock, and promotion alerts'
+    });
+    createAction({
+        destination: 'browse',
+        icon: 'fa-compass',
+        title: 'Browse fragrances',
+        description: 'Find something new to save'
+    });
+
+    const status = document.createElement('p');
+    status.className = 'saved-items-menu__status';
+    menu.appendChild(status);
+
+    const parent = favoritesButton.parentNode;
+    parent.insertBefore(dropdown, favoritesButton);
+    dropdown.append(favoritesButton, menu);
+    favoritesButton.setAttribute('aria-label', 'Open saved items');
+    favoritesButton.setAttribute('aria-haspopup', 'true');
+    favoritesButton.setAttribute('aria-controls', menu.id);
+    favoritesButton.setAttribute('aria-expanded', 'false');
+    return { dropdown, menu, status };
+}
+
 function initializeCarousel() {
     const carousel = document.querySelector('.image-carousel');
     const images = [...document.querySelectorAll('.promo-image')];
@@ -161,8 +252,15 @@ function initializeHeader(hydrateCarouselMedia) {
     const profileDropdown = document.querySelector('.profile-dropdown');
     const profileButton = profileDropdown?.querySelector('.profile-btn');
     const profileMenu = profileDropdown?.querySelector('.profile-menu');
+    const favoritesButton = document.querySelector('.favorites-btn');
+    const savedItems = createSavedItemsMenu(favoritesButton);
+    const savedDropdown = savedItems.dropdown;
+    const savedMenu = savedItems.menu;
+    const savedMenuStatus = savedItems.status;
     let lastFocusedElement = null;
     let profileCloseTimer = 0;
+    let authHydrated = false;
+    let pendingHeartActivation = false;
 
     function setDesktopMenu(open) {
         if (open) void hydrateCarouselMedia?.();
@@ -215,6 +313,68 @@ function initializeHeader(hydrateCarouselMedia) {
         setProfileMenu(false);
     }
 
+    function setSavedMenu(open, restoreFocus = false) {
+        if (!savedDropdown || !savedMenu || !favoritesButton) return;
+        const authenticated = typeof isAuthenticated === 'function' && isAuthenticated();
+        savedDropdown.classList.toggle('active', open);
+        favoritesButton.setAttribute('aria-expanded', String(open));
+        favoritesButton.setAttribute('aria-label', open ? 'Close saved items' : 'Open saved items');
+        savedMenu.setAttribute('aria-hidden', String(!open));
+        savedMenu.inert = !open;
+        if (savedMenuStatus) {
+            savedMenuStatus.textContent = authenticated
+                ? 'Choose an area to manage.'
+                : 'Sign in to access saved items.';
+        }
+        if (!open && restoreFocus) favoritesButton.focus();
+    }
+
+    function revealHomeFavorites() {
+        const page = window.location.pathname.split('/').pop();
+        const onHomePage = !page || page === 'main.html' || page === 'index.html';
+        if (!onHomePage || typeof showFavoritesView !== 'function') return false;
+        if (window.location.hash !== '#favorites') {
+            window.history.pushState({ ...window.history.state, catalogView: 'favorites' }, '', '#favorites');
+        }
+        showFavoritesView({ reveal: true });
+        return true;
+    }
+
+    document.addEventListener('fragrance:auth-change', (event) => {
+        authHydrated = true;
+        favoritesButton?.removeAttribute('aria-busy');
+        if (savedDropdown?.classList.contains('active')) setSavedMenu(true);
+        if (!pendingHeartActivation) return;
+        pendingHeartActivation = false;
+        if (event.detail?.user && revealHomeFavorites()) {
+            setSavedMenu(false);
+            return;
+        }
+        setSavedMenu(true);
+    });
+
+    function openSavedDestination(destination) {
+        if (destination === 'browse') {
+            setSavedMenu(false);
+            window.location.assign('/main.html#shop');
+            return;
+        }
+        const authenticated = typeof isAuthenticated === 'function' && isAuthenticated();
+        setSavedMenu(false);
+        if (!authenticated) {
+            window.location.assign('/auth.html?tab=signin');
+            return;
+        }
+
+        if (destination === 'watches') {
+            window.location.assign('/account.html#alerts');
+            return;
+        }
+
+        if (revealHomeFavorites()) return;
+        window.location.assign('/main.html#favorites');
+    }
+
     function setMobileMenu(open, restoreFocus = true) {
         if (!mobileMenu || !mobileToggle) return;
         mobileMenu.classList.toggle('active', open);
@@ -241,6 +401,7 @@ function initializeHeader(hydrateCarouselMedia) {
     menuButton?.addEventListener('click', (event) => {
         event.stopPropagation();
         closeProfileMenu();
+        setSavedMenu(false);
         setDesktopMenu(!menuDropdown.classList.contains('active'));
     });
     menuButton?.addEventListener('focus', () => {
@@ -250,6 +411,7 @@ function initializeHeader(hydrateCarouselMedia) {
     profileButton?.addEventListener('click', (event) => {
         event.stopPropagation();
         setDesktopMenu(false);
+        setSavedMenu(false);
         if (profileDropdown.classList.contains('active')) {
             closeProfileMenu();
         } else {
@@ -277,6 +439,7 @@ function initializeHeader(hydrateCarouselMedia) {
 
     mobileToggle?.addEventListener('click', (event) => {
         event.stopPropagation();
+        setSavedMenu(false);
         setMobileMenu(!mobileMenu.classList.contains('active'));
     });
     mobileClose?.addEventListener('click', () => setMobileMenu(false));
@@ -288,11 +451,13 @@ function initializeHeader(hydrateCarouselMedia) {
     document.addEventListener('click', (event) => {
         if (menuDropdown && !menuDropdown.contains(event.target)) setDesktopMenu(false);
         if (profileDropdown && !profileDropdown.contains(event.target)) closeProfileMenu();
+        if (savedDropdown && !savedDropdown.contains(event.target)) setSavedMenu(false);
     });
 
     document.addEventListener('focusin', (event) => {
         if (menuDropdown && !menuDropdown.contains(event.target)) setDesktopMenu(false);
         if (profileDropdown && !profileDropdown.contains(event.target)) closeProfileMenu();
+        if (savedDropdown && !savedDropdown.contains(event.target)) setSavedMenu(false);
     });
 
     document.addEventListener('keydown', (event) => {
@@ -300,6 +465,7 @@ function initializeHeader(hydrateCarouselMedia) {
             if (mobileMenu?.classList.contains('active')) setMobileMenu(false);
             setDesktopMenu(false);
             closeProfileMenu();
+            setSavedMenu(false, savedDropdown?.classList.contains('active'));
             return;
         }
 
@@ -327,25 +493,51 @@ function initializeHeader(hydrateCarouselMedia) {
         window.location.assign('/#filter');
     });
 
-    const favoritesButton = document.querySelector('.favorites-btn');
     favoritesButton?.addEventListener('click', (event) => {
-        const authenticated = typeof isAuthenticated === 'function' && isAuthenticated();
-        if (!authenticated) {
-            event.preventDefault();
-            window.location.assign('auth.html?tab=signin');
+        event.preventDefault();
+        event.stopPropagation();
+        setDesktopMenu(false);
+        closeProfileMenu();
+        if (!authHydrated) {
+            pendingHeartActivation = !pendingHeartActivation;
+            favoritesButton.setAttribute('aria-busy', String(pendingHeartActivation));
+            setSavedMenu(pendingHeartActivation);
+            if (pendingHeartActivation && savedMenuStatus) {
+                savedMenuStatus.textContent = 'Checking your saved items…';
+            }
             return;
         }
-
-        const page = window.location.pathname.split('/').pop();
-        if ((!page || page === 'main.html' || page === 'index.html') && typeof showFavoritesView === 'function') {
-            event.preventDefault();
-            showFavoritesView();
+        const authenticated = typeof isAuthenticated === 'function' && isAuthenticated();
+        if (authenticated && revealHomeFavorites()) {
+            setSavedMenu(false);
+            return;
         }
+        const opening = !savedDropdown?.classList.contains('active');
+        setSavedMenu(opening);
+    });
+    favoritesButton?.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowDown') return;
+        event.preventDefault();
+        setSavedMenu(true);
+        const firstSavedItem = savedMenu?.querySelector('.saved-items-menu__item');
+        // Chromium can reject focus in the same task that removes an
+        // ancestor's inert state. Wait for the updated focusability tree, and
+        // do not steal focus if the menu was closed in the meantime.
+        window.requestAnimationFrame(() => {
+            if (!savedDropdown?.classList.contains('active') || savedMenu?.inert) return;
+            firstSavedItem?.focus();
+        });
+    });
+    savedMenu?.addEventListener('click', (event) => {
+        const action = event.target.closest('.saved-items-menu__item');
+        if (!action) return;
+        openSavedDestination(action.dataset.savedDestination);
     });
 
     setMobileMenu(false, false);
     setDesktopMenu(false);
     closeProfileMenu();
+    setSavedMenu(false);
 }
 
 function setNavigationSemantics() {

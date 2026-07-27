@@ -12,7 +12,7 @@ const workerSource = readFileSync(new URL('weathered-mud-6ed5/src/integrated-wor
 const wranglerSource = readFileSync(new URL('weathered-mud-6ed5/wrangler.toml', root), 'utf8');
 const migrationDirectory = new URL('weathered-mud-6ed5/migrations/', root);
 const deployedApiOrigin = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
-const CURRENT_PASSWORD_TEST_VECTOR = 'pbkdf2-sha512-v1$100000$ffeeddccbbaa99887766554433221100$ec8f31a9550656e0ecc7596892cae63f876dbded0f0888c47e712e143aeb49019a5dd4a77c783f6e549888bf3699b8ba81cda9b74d4dba9b227a3bc0d139851a';
+const CURRENT_PASSWORD_TEST_VECTOR = 'pbkdf2-sha512-v1$100000$ffeeddccbbaa99887766554433221100$db93c652a74cbeead05b7c092b7681f45bdc72fc938583b6cdd5b0573eaa004ab864d3a85c846445197631034a6259116ef425a80027117c4ed1ee385833d392';
 const LEGACY_PBKDF2_TEST_VECTOR = '00112233445566778899aabbccddeeff:e9584c5248ee21cec2ff4b97c9e9fce22eab07a51637edb1a84ae0b136c9dfc29af8da9d5451779665e790a1f826a4a29d05712f7a2a625d198d8a6a5e1443c2';
 
 class D1StatementStub {
@@ -1461,7 +1461,7 @@ test('global email and outbound-write budgets prevent aggregate upstream and dat
   }
 });
 
-test('Google ownership stays keyed to sub, email changes are consistent, conflicts fail closed, and fresh unknown kids do not refetch JWKS', async () => {
+test('Google ownership stays keyed to sub, password collisions complete with both proofs, conflicts fail closed, and JWKS fetches stay bounded', async () => {
   const fixture = createFixture();
   const originalFetch = globalThis.fetch;
   const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -1494,6 +1494,178 @@ test('Google ownership stays keyed to sub, email changes are consistent, conflic
     assert.equal(firstLogin.status, 200, await firstLogin.clone().text());
     assert.equal(concurrentLogin.status, 200, await concurrentLogin.clone().text());
     assert.equal(jwksFetches, 1, 'concurrent cold logins must share one JWKS request');
+
+    const passwordOwnerId = 'password-google-link-owner';
+    const passwordOwnerEmail = 'password.google.link@example.com';
+    const passwordOwnerSubject = 'password-google-link-subject';
+    const oldSessionToken = 'old_password_google_session_token_1234567890';
+    fixture.database.prepare(`
+      INSERT INTO users (id, email, name, password_hash)
+      VALUES (?, ?, ?, ?)
+    `).run(passwordOwnerId, passwordOwnerEmail, 'Password Google Owner', CURRENT_PASSWORD_TEST_VECTOR);
+    fixture.database.prepare(`
+      INSERT INTO user_identities (id, user_id, provider, provider_subject, email)
+      VALUES (?, ?, 'password', ?, ?)
+    `).run(
+      'password-google-link-password-identity', passwordOwnerId,
+      passwordOwnerEmail, passwordOwnerEmail
+    );
+    fixture.database.prepare(`
+      INSERT INTO user_sessions (id, user_id, token, expires_at, fingerprint)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      'password-google-link-old-session', passwordOwnerId, opaqueTokenDigest(oldSessionToken),
+      new Date(Date.now() + 60_000).toISOString(), opaqueTokenDigest('ua:security-regression-agent')
+    );
+    const passwordOwnerCredential = signGoogleToken(privateKey, 'known-google-key', {
+      sub: passwordOwnerSubject,
+      email: passwordOwnerEmail,
+      name: 'Password Google Owner'
+    });
+
+    const passwordLinkRequired = await integratedWorker.fetch(localJsonRequest('/api/login/google', 'POST', {
+      credential: passwordOwnerCredential
+    }, { ip: '192.0.2.90' }), fixture.env, {});
+    assert.equal(passwordLinkRequired.status, 409, await passwordLinkRequired.clone().text());
+    const passwordLinkRequiredBody = await passwordLinkRequired.json();
+    assert.equal(passwordLinkRequiredBody.code, 'account_link_required');
+    assert.equal(passwordLinkRequiredBody.recoveryEmail, passwordOwnerEmail);
+    assert.equal(passwordLinkRequired.headers.get('Set-Cookie'), null, 'missing password proof must not create a session');
+    assert.equal(fixture.database.prepare(`
+      SELECT COUNT(*) AS total FROM user_identities WHERE user_id = ? AND provider = 'google'
+    `).get(passwordOwnerId).total, 0, 'an email match alone must never create a Google identity');
+    assert.equal(fixture.database.prepare(`
+      SELECT COUNT(*) AS total FROM user_sessions WHERE user_id = ?
+    `).get(passwordOwnerId).total, 1, 'the collision response must not mutate existing sessions');
+    assert.equal(
+      fixture.database.prepare('SELECT email_verified_at FROM users WHERE id = ?').get(passwordOwnerId).email_verified_at,
+      null,
+      'Google selection alone must not verify the existing password account'
+    );
+
+    const wrongPasswordCompletion = await integratedWorker.fetch(localJsonRequest('/api/login/google', 'POST', {
+      credential: passwordOwnerCredential,
+      currentPassword: 'Wrong9!Password'
+    }, { ip: '192.0.2.91' }), fixture.env, {});
+    assert.equal(wrongPasswordCompletion.status, 401, await wrongPasswordCompletion.clone().text());
+    assert.equal((await wrongPasswordCompletion.json()).code, 'reauthentication_failed');
+    assert.equal(wrongPasswordCompletion.headers.get('Set-Cookie'), null, 'wrong password proof must not create a session');
+    assert.equal(fixture.database.prepare(`
+      SELECT COUNT(*) AS total FROM user_identities WHERE user_id = ? AND provider = 'google'
+    `).get(passwordOwnerId).total, 0, 'wrong password proof must not link Google');
+    assert.equal(fixture.database.prepare(`
+      SELECT COUNT(*) AS total FROM user_sessions WHERE user_id = ?
+    `).get(passwordOwnerId).total, 1, 'failed completion must leave old sessions untouched');
+
+    const passwordCompletion = await integratedWorker.fetch(localJsonRequest('/api/login/google', 'POST', {
+      credential: passwordOwnerCredential,
+      currentPassword: 'Correct9!Pass'
+    }, { ip: '192.0.2.92' }), fixture.env, {});
+    assert.equal(passwordCompletion.status, 200, await passwordCompletion.clone().text());
+    const passwordCompletionBody = await passwordCompletion.clone().json();
+    assert.equal(passwordCompletionBody.user.id, passwordOwnerId);
+    assert.equal(passwordCompletionBody.user.hasGoogleIdentity, true);
+    assert.equal(passwordCompletionBody.user.emailVerified, true);
+    const passwordCompletionCookie = cookieValue(passwordCompletion);
+    assert.ok(passwordCompletionCookie, 'successful completion must issue the replacement session cookie');
+
+    const linkedPasswordIdentity = fixture.database.prepare(`
+      SELECT provider_subject, email, email_verified_at
+      FROM user_identities WHERE user_id = ? AND provider = 'google'
+    `).get(passwordOwnerId);
+    assert.equal(linkedPasswordIdentity.provider_subject, passwordOwnerSubject);
+    assert.equal(linkedPasswordIdentity.email, passwordOwnerEmail);
+    assert.ok(linkedPasswordIdentity.email_verified_at, 'the Google identity must retain its verified-email proof');
+    assert.ok(
+      fixture.database.prepare('SELECT email_verified_at FROM users WHERE id = ?').get(passwordOwnerId).email_verified_at,
+      'the same-email Google and password proofs must verify the account'
+    );
+    assert.equal(fixture.database.prepare(`
+      SELECT COUNT(*) AS total FROM user_sessions WHERE user_id = ?
+    `).get(passwordOwnerId).total, 1, 'link completion must revoke old sessions and retain only the replacement');
+    assert.equal(fixture.database.prepare(`
+      SELECT COUNT(*) AS total FROM user_sessions WHERE id = 'password-google-link-old-session'
+    `).get().total, 0, 'the pre-link session must be revoked');
+
+    const revokedOldStatus = await integratedWorker.fetch(new Request('http://localhost:8787/api/status', {
+      headers: {
+        Cookie: `__Host-fragrance_session=${oldSessionToken}`,
+        'User-Agent': 'security-regression-agent'
+      }
+    }), fixture.env, {});
+    assert.equal(revokedOldStatus.status, 401);
+    const completedStatus = await integratedWorker.fetch(new Request('http://localhost:8787/api/status', {
+      headers: {
+        Cookie: `__Host-fragrance_session=${passwordCompletionCookie}`,
+        'User-Agent': 'security-regression-agent'
+      }
+    }), fixture.env, {});
+    assert.equal(completedStatus.status, 200, await completedStatus.clone().text());
+    const completedStatusUser = (await completedStatus.json()).user;
+    assert.equal(completedStatusUser.id, passwordOwnerId);
+    assert.equal(completedStatusUser.hasGoogleIdentity, true);
+
+    const laterSubjectLogin = await integratedWorker.fetch(localJsonRequest('/api/login/google', 'POST', {
+      credential: passwordOwnerCredential
+    }, { ip: '192.0.2.93' }), fixture.env, {});
+    assert.equal(laterSubjectLogin.status, 200, await laterSubjectLogin.clone().text());
+    assert.equal((await laterSubjectLogin.json()).user.id, passwordOwnerId, 'later login must resolve by immutable Google sub');
+
+    const replacementSubjectCredential = signGoogleToken(privateKey, 'known-google-key', {
+      sub: 'replacement-password-google-subject',
+      email: passwordOwnerEmail,
+      name: 'Password Google Owner'
+    });
+    const replacementConflict = await integratedWorker.fetch(localJsonRequest('/api/login/google', 'POST', {
+      credential: replacementSubjectCredential,
+      currentPassword: 'Correct9!Pass'
+    }, { ip: '192.0.2.94' }), fixture.env, {});
+    assert.equal(replacementConflict.status, 409, await replacementConflict.clone().text());
+    assert.deepEqual(
+      fixture.database.prepare(`
+        SELECT provider_subject FROM user_identities WHERE user_id = ? AND provider = 'google'
+      `).all(passwordOwnerId).map((row) => row.provider_subject),
+      [passwordOwnerSubject],
+      'password completion must never overwrite an existing Google subject'
+    );
+
+    const legacyPasswordOwnerId = 'legacy-password-google-link-owner';
+    const legacyPasswordOwnerEmail = 'legacy.password.google@example.com';
+    fixture.database.prepare(`
+      INSERT INTO users (id, email, name, password_hash)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      legacyPasswordOwnerId, legacyPasswordOwnerEmail,
+      'Legacy Password Google Owner', LEGACY_PBKDF2_TEST_VECTOR
+    );
+    fixture.database.prepare(`
+      INSERT INTO user_identities (id, user_id, provider, provider_subject, email)
+      VALUES (?, ?, 'password', ?, ?)
+    `).run(
+      'legacy-password-google-link-password-identity', legacyPasswordOwnerId,
+      legacyPasswordOwnerEmail, legacyPasswordOwnerEmail
+    );
+    const legacyPasswordCredential = signGoogleToken(privateKey, 'known-google-key', {
+      sub: 'legacy-password-google-link-subject',
+      email: legacyPasswordOwnerEmail,
+      name: 'Legacy Password Google Owner'
+    });
+    const legacyPasswordCompletion = await integratedWorker.fetch(localJsonRequest('/api/login/google', 'POST', {
+      credential: legacyPasswordCredential,
+      currentPassword: 'Legacy9!Password'
+    }, { ip: '192.0.2.95' }), fixture.env, {});
+    assert.equal(legacyPasswordCompletion.status, 200, await legacyPasswordCompletion.clone().text());
+    assert.match(
+      fixture.database.prepare('SELECT password_hash FROM users WHERE id = ?').get(legacyPasswordOwnerId).password_hash,
+      /^pbkdf2-sha512-v1\$100000\$/,
+      'Google password completion must preserve lazy legacy-hash upgrading'
+    );
+    assert.equal(
+      fixture.database.prepare(`
+        SELECT provider_subject FROM user_identities WHERE user_id = ? AND provider = 'google'
+      `).get(legacyPasswordOwnerId).provider_subject,
+      'legacy-password-google-link-subject'
+    );
 
     const changedEmailToken = signGoogleToken(privateKey, 'known-google-key', {
       sub: 'stable-google-subject', email: 'renamed.google@example.com', name: 'Google Owner'
@@ -1615,6 +1787,60 @@ test('Google ownership stays keyed to sub, email changes are consistent, conflic
     }), fixture.env, {});
     assert.equal(linkedStatus.status, 200);
     assert.equal((await linkedStatus.json()).user.hasGoogleIdentity, true);
+
+    const raceOwnerId = 'google-link-race-owner';
+    const raceOwnerEmail = 'google.link.race@example.com';
+    const raceSessionToken = 'google_link_race_session_token_1234567890';
+    fixture.database.prepare(`
+      INSERT INTO users (id, email, name, password_hash, email_verified_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(raceOwnerId, raceOwnerEmail, 'Google Link Race Owner', CURRENT_PASSWORD_TEST_VECTOR, new Date().toISOString());
+    fixture.database.prepare(`
+      INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
+      VALUES (?, ?, 'password', ?, ?, ?)
+    `).run('google-link-race-password', raceOwnerId, raceOwnerEmail, raceOwnerEmail, new Date().toISOString());
+    fixture.database.prepare(`
+      INSERT INTO user_sessions (id, user_id, token, expires_at, fingerprint)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      'google-link-race-session', raceOwnerId, opaqueTokenDigest(raceSessionToken),
+      new Date(Date.now() + 60_000).toISOString(), opaqueTokenDigest('ua:security-regression-agent')
+    );
+    const losingRaceCredential = signGoogleToken(privateKey, 'known-google-key', {
+      sub: 'losing-google-link-subject', email: raceOwnerEmail, name: 'Google Link Race Owner'
+    });
+    const baseBinding = fixture.env.DB;
+    const pausedBinding = pauseAfterFirstMatchingRead(baseBinding, 'SELECT password_hash,');
+    fixture.env.DB = pausedBinding.binding;
+    const racedLinkPromise = integratedWorker.fetch(localJsonRequest('/api/user/identities/google', 'POST', {
+      credential: losingRaceCredential,
+      currentPassword: 'Correct9!Pass'
+    }, { cookie: raceSessionToken, ip: '192.0.2.96' }), fixture.env, {});
+    await pausedBinding.reached;
+    fixture.database.prepare(`
+      INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
+      VALUES (?, ?, 'google', ?, ?, ?)
+    `).run(
+      'google-link-race-winner', raceOwnerId, 'winning-google-link-subject',
+      raceOwnerEmail, new Date().toISOString()
+    );
+    pausedBinding.release();
+    const racedLink = await racedLinkPromise;
+    fixture.env.DB = baseBinding;
+    assert.equal(racedLink.status, 409, await racedLink.clone().text());
+    assert.equal((await racedLink.json()).code, 'google_identity_conflict');
+    assert.equal(
+      fixture.database.prepare(`
+        SELECT provider_subject FROM user_identities WHERE user_id = ? AND provider = 'google'
+      `).get(raceOwnerId).provider_subject,
+      'winning-google-link-subject',
+      'a stale precheck must never overwrite an immutable Google subject'
+    );
+    assert.equal(
+      fixture.database.prepare('SELECT COUNT(*) AS total FROM user_sessions WHERE user_id = ?').get(raceOwnerId).total,
+      1,
+      'a losing link race must not rotate the existing session'
+    );
   } finally {
     globalThis.fetch = originalFetch;
     fixture.database.close();
