@@ -1,18 +1,16 @@
-/* Legal Pages (Terms of Service, Privacy Policy) Styles */
-
 .legal-main {
     min-height: 100vh;
-    background: var(--soft-black);
+    background: var(--fc-ink);
     padding: 120px 2rem 4rem;
-    color: var(--warm-white);
+    color: var(--fc-text);
 }
 
 .legal-container {
     max-width: 800px;
     margin: 0 auto;
-    background: var(--deep-plum);
-    border: 1px solid var(--antique-gold);
-    border-radius: 15px;
+    background: var(--fc-surface);
+    border: 1px solid var(--fc-line);
+    border-radius: var(--fc-radius);
     padding: 3rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
@@ -21,11 +19,11 @@
     text-align: center;
     margin-bottom: 3rem;
     padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--antique-gold);
+    border-bottom: 1px solid var(--fc-line);
 }
 
 .legal-title {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--fc-font-display);
     font-size: 3rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
@@ -37,16 +35,16 @@
 }
 
 .legal-content h2 {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--fc-font-display);
     font-size: 1.75rem;
     font-weight: 600;
-    color: var(--antique-gold);
+    color: var(--fc-gold-soft);
     margin-top: 2.5rem;
     margin-bottom: 1rem;
 }
 
 .legal-content p {
-    font-family: 'Lato', sans-serif;
+    font-family: var(--fc-font-body);
     font-size: 1rem;
     line-height: 1.8;
     margin-bottom: 1.5rem;
@@ -54,17 +52,17 @@
 }
 
 .legal-content a {
-    color: var(--antique-gold);
-    text-decoration: none;
+    color: var(--fc-gold-soft);
+    text-decoration: underline;
+    text-underline-offset: 3px;
     transition: color 0.3s ease;
 }
 
 .legal-content a:hover {
-    color: var(--warm-white);
+    color: var(--fc-paper-bright);
     text-decoration: underline;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .legal-main {
         padding: 100px 1rem 2rem;

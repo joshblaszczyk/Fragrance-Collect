@@ -10,6 +10,10 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
 config.js
 secrets.json
 *.key
@@ -113,9 +117,14 @@ Thumbs.db
 build/
 dist/
 out/
+.artifacts/
 
 # Wrangler local state
 .wrangler/
+
+# Local Codex orchestration scratch files
+run_codex_agents.py
+codex_logs/
 
 # Docker
 .dockerignore

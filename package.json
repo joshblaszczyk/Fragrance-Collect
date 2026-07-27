@@ -2,14 +2,33 @@
   "name": "fragrance-collect",
   "version": "1.0.0",
   "description": "Fragrance Collect website",
-  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "http-proxy-middleware": "^3.0.5"
+    "start": "node scripts/dev.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:worker": "npm --prefix weathered-mud-6ed5 run dev",
+    "build": "node scripts/build-site.mjs",
+    "build:cloudflare": "npm run build && node scripts/prepare-cloudflare-assets.mjs",
+    "check": "node scripts/check-site.mjs",
+    "check:prospective-release": "node scripts/check-prospective-release.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "check:syntax": "node scripts/check-syntax.mjs",
+    "check:workflow-safety": "node scripts/check-workflow-release-safety.mjs",
+    "check:cloudflare-headers": "node scripts/check-cloudflare-asset-headers.mjs",
+    "check:cloudflare-artifact": "node scripts/check-cloudflare-release-artifact.mjs",
+    "check:cloudflare-d1": "node scripts/check-cloudflare-d1-prerequisites.mjs",
+    "check:cloudflare-secret-policy": "node scripts/check-cloudflare-worker-secrets.mjs --self-test",
+    "check:cloudflare-worker-secrets": "node scripts/check-cloudflare-worker-secrets.mjs",
+    "check:cloudflare-production": "node scripts/check-cloudflare-production-headers.mjs",
+    "optimize:images": "node scripts/optimize-images.mjs",
+    "browser:smoke": "node scripts/browser-smoke.mjs",
+    "browser:smoke:managed": "node scripts/run-managed-browser-smoke.mjs",
+    "capture:review": "node scripts/capture-page-review.mjs",
+    "api:check:local": "node scripts/check-local-account-api.mjs",
+    "api:check:production": "node scripts/check-production-api.mjs",
+    "test": "node --test",
+    "verify": "npm run check:syntax && npm run check && npm run check:secrets && npm run check:workflow-safety && npm run check:cloudflare-secret-policy && npm test",
+    "release:check": "npm run verify && npm run build:cloudflare && npm run check:cloudflare-headers && npm run check:cloudflare-artifact && npm run check:secrets && npm audit --audit-level=high && npm audit --prefix weathered-mud-6ed5 --audit-level=high && npm run check --prefix weathered-mud-6ed5",
+    "release:prepush": "npm run check:prospective-release -- --require-clean && npm run release:check && npm run browser:smoke:managed"
   },
   "keywords": [
     "fragrance",
@@ -17,5 +36,12 @@
     "ecommerce"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "axe-core": "^4.12.1",
+    "sharp": "^0.35.3"
+  }
 }

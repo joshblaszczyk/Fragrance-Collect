@@ -1,0 +1,172 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+.redirect-page {
+    display: grid;
+    min-height: 100svh;
+    margin: 0;
+    padding: clamp(1rem, 5vw, 3rem);
+    place-items: center;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 10%, rgba(76, 46, 58, 0.72), transparent 28rem),
+        radial-gradient(circle at 85% 85%, rgba(214, 181, 102, 0.09), transparent 22rem),
+        var(--fc-ink, #0b0b0d);
+    color: var(--fc-text, #f7f1e7);
+    font-family: var(--fc-font-body, 'Lato', sans-serif);
+    text-align: center;
+}
+
+.redirect-panel {
+    position: relative;
+    isolation: isolate;
+    width: min(100%, 650px);
+    padding: clamp(2rem, 7vw, 4.5rem);
+    overflow: hidden;
+    border: 1px solid var(--fc-line, rgba(255, 255, 255, 0.1));
+    border-radius: var(--fc-radius-lg, 30px);
+    background: rgba(20, 20, 24, 0.9);
+    box-shadow: var(--fc-shadow, 0 24px 70px rgba(0, 0, 0, 0.34));
+    backdrop-filter: blur(20px);
+}
+
+.redirect-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(135deg, rgba(214, 181, 102, 0.08), transparent 40%);
+}
+
+.redirect-logo {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(214, 181, 102, 0.55);
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.redirect-eyebrow {
+    margin: 0 0 0.75rem;
+    color: var(--fc-gold, #d6b566);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.redirect-panel h1 {
+    margin: 0;
+    color: var(--fc-paper-bright, #faf7f1);
+    font-family: var(--fc-font-display, 'Playfair Display', serif);
+    font-size: clamp(2.75rem, 10vw, 4.6rem);
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    line-height: 0.98;
+}
+
+.redirect-intro {
+    max-width: 47ch;
+    margin: 1.5rem auto 2rem;
+    color: var(--fc-muted, #b9b2aa);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.redirect-status {
+    display: flex;
+    min-height: 2rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem;
+    color: var(--fc-text, #f7f1e7);
+    font-size: 0.88rem;
+}
+
+.loading {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(214, 181, 102, 0.25);
+    border-top-color: var(--fc-gold-soft, #ead7a2);
+    border-radius: 50%;
+    animation: spin 1s ease-in-out infinite;
+}
+
+.redirect-action {
+    display: inline-flex;
+    min-height: var(--fc-control-height, 3rem);
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.5rem;
+    border: 1px solid var(--fc-gold, #d6b566);
+    border-radius: var(--fc-radius-pill, 999px);
+    background: var(--fc-gold, #d6b566);
+    color: var(--fc-ink, #0b0b0d);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.redirect-action:hover {
+    border-color: var(--fc-gold-soft, #ead7a2);
+    background: var(--fc-gold-soft, #ead7a2);
+    box-shadow: 0 12px 35px rgba(214, 181, 102, 0.2);
+    transform: translateY(-2px);
+}
+
+.redirect-note {
+    max-width: 46ch;
+    margin: 1.5rem auto 0;
+    color: var(--fc-muted, #b9b2aa);
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 10;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    background: #fff;
+    color: #121212;
+    transform: translateY(-150%);
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading {
+        animation: none;
+    }
+
+    .redirect-action {
+        transition: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .redirect-panel {
+        padding: 2rem 1.25rem;
+        border-radius: var(--fc-radius, 20px);
+    }
+
+    .redirect-action {
+        width: 100%;
+    }
+}

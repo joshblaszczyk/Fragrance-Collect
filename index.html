@@ -3,69 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fragrance Collect - Discover Your Signature Scent</title>
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Opening the Catalog - Fragrance Collect</title>
+    <meta name="description" content="Compare fragrance offers from participating retailers, save favorites, and find your next scent with Fragrance Collect.">
+    <meta name="theme-color" content="#0b0b0d">
+    <link rel="canonical" href="https://fragrancecollect.com/">
+    <link rel="icon" type="image/webp" href="assets/images/emblem-96.webp">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index-styles.css">
+    <link rel="stylesheet" href="design-system.css">
     <meta http-equiv="refresh" content="0; url=main.html">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            padding: 50px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            max-width: 600px;
-        }
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        p {
-            font-size: 1.2em;
-            margin-bottom: 30px;
-            opacity: 0.9;
-        }
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        a {
-            color: #fff;
-            text-decoration: underline;
-            font-weight: bold;
-        }
-        a:hover {
-            text-decoration: none;
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Fragrance Collect</h1>
-        <p>Discover Your Signature Scent</p>
-        <div>
-            <span class="loading"></span>
-            Redirecting to main page...
-        </div>
-        <p style="margin-top: 30px;">
-            If you're not redirected automatically, 
-            <a href="main.html">click here</a> to continue.
+<body class="redirect-page">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <main class="redirect-panel" id="main-content">
+        <img src="assets/images/emblem-96.webp" width="96" height="135" alt="" class="redirect-logo">
+        <p class="redirect-eyebrow">Independent fragrance discovery</p>
+        <h1>Your catalog awaits.</h1>
+        <p class="redirect-intro">Compare fragrance offers from participating retailers and save the scents that stand out.</p>
+        <p class="redirect-status" role="status">
+            <span class="loading" aria-hidden="true"></span>
+            Opening Fragrance Collect…
         </p>
-    </div>
+        <a class="redirect-action" href="main.html#shop">Open the catalog</a>
+        <noscript>
+            <p class="redirect-note">JavaScript is off. You can still open the catalog, though interactive search and account features require it.</p>
+        </noscript>
+    </main>
 </body>
-</html> 
+</html>

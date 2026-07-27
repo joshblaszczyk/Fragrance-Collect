@@ -25,7 +25,7 @@
     background: var(--soft-black);
     border: 1px solid var(--antique-gold);
     border-radius: 20px;
-    box-shadow: 
+    box-shadow:
         0 20px 40px rgba(0, 0, 0, 0.3),
         0 0 0 1px rgba(201, 166, 70, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -224,16 +224,11 @@
 
 .input-wrapper input,
 .password-input input {
-    padding-right: 1.25rem; /* Default padding */
+    padding-right: 1.25rem;
 }
 
 .password-input input {
-    padding-right: 3.5rem; /* More padding for password fields to not overlap with the eye icon */
-}
-
-/* Password Input */
-.password-input {
-    position: relative;
+    padding-right: 3.5rem;
 }
 
 .password-toggle {
@@ -273,7 +268,14 @@
 }
 
 .checkbox-container input[type="checkbox"] {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .checkmark {
@@ -288,6 +290,11 @@
 
 .checkbox-container input[type="checkbox"]:checked + .checkmark {
     background: var(--antique-gold);
+}
+
+.checkbox-container input[type="checkbox"]:focus-visible + .checkmark {
+    outline: 3px solid var(--fc-gold-soft, #ead7a2);
+    outline-offset: 4px;
 }
 
 .checkbox-container input[type="checkbox"]:checked + .checkmark::after {
@@ -372,18 +379,6 @@
     transform: translateY(0);
 }
 
-.submit-btn.loading .btn-text {
-    display: none;
-}
-
-.submit-btn.loading .btn-loading {
-    display: inline-block;
-}
-
-.btn-loading {
-    display: none;
-}
-
 /* Social Sign In */
 .social-signin {
     margin-top: 1rem;
@@ -418,106 +413,54 @@
 
 .social-buttons {
     display: flex;
-    flex-direction: column; /* Stack buttons vertically */
+    flex-direction: column;
     justify-content: center;
     gap: 1rem;
     margin-top: 0;
     margin-bottom: 0;
-    width: 100%; /* Ensure the container takes full width */
-}
-
-/* --- Style container for Google button to influence its size --- */
-.social-buttons > div {
-    display: flex;
-    justify-content: center;
     width: 100%;
-    min-height: 72px; /* Match submit button height exactly */
 }
 
-.social-buttons .g_id_signin,
-.social-buttons .g_id_signin > div {
-    width: 100% !important;
-    min-height: 72px !important; /* Match submit button height exactly */
-    display: flex !important;       /* Use flexbox to center the button content */
-    justify-content: center !important; /* Center horizontally */
-    align-items: center !important;     /* Center vertically */
-    border-radius: 12px !important; /* Match submit button border radius */
-}
-
-.social-buttons iframe {
-    margin: 0 auto;
-    border-radius: 12px !important; /* Match submit button border radius */
-}
-
-/* Additional styling to ensure Google button content is properly spaced */
-.social-buttons .g_id_signin iframe {
-    min-height: 72px !important;
-    height: 72px !important;
-    border-radius: 12px !important;
-}
-
-/* Stronger overrides for Google button styling - match submit button exactly */
-.social-buttons .g_id_signin,
-.social-buttons .g_id_signin iframe,
-.social-buttons .g_id_signin > div,
-.social-buttons .g_id_signin > div > div {
-    height: 72px !important;
-    min-height: 72px !important;
-    max-height: 72px !important;
-    border-radius: 12px !important;
-}
-
-/* Override Google's button container styles */
-.social-buttons .g_id_signin .S9gUrf-YoZ4jf {
-    height: 72px !important;
-    min-height: 72px !important;
-}
-
-/* Ensure proper button element height - match submit button padding */
-.social-buttons .nsm7Bb-HzV7m-LgbsSe {
-    height: 72px !important;
-    min-height: 72px !important;
-    border-radius: 12px !important;
-    padding: 1.25rem 2rem !important;
-    font-size: 1.1rem !important;
-}
-
-/* Hide the Google Sign-In configuration div so it doesn't take up space */
-#g_id_onload {
-    display: none;
-}
-
-.social-btn {
-    flex: 1;
-    background: transparent;
-    border: 2px solid var(--antique-gold);
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    color: var(--antique-gold);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.google-button-host {
     display: flex;
-    align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    text-decoration: none;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    overflow: hidden;
 }
 
-.social-btn:hover {
-    background: var(--antique-gold);
-    color: var(--soft-black);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(201, 166, 70, 0.3);
+.local-google-disabled {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 7px;
+    background: #242428;
+    color: #9c9690;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: not-allowed;
 }
 
-.social-btn i {
-    font-size: 1.1rem;
+.auth-provider-note {
+    max-width: 400px;
+    margin: 10px auto 0;
+    color: var(--fc-muted);
+    font-size: 0.76rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.auth-provider-note code {
+    color: var(--fc-gold-soft);
+    font-family: inherit;
 }
 
 /* Error Messages */
 .error-message {
-    color: #ff6b6b;
+    color: #ffb4b4;
     font-size: 0.85rem;
     margin-top: 0.5rem;
     min-height: 1.2rem;
@@ -527,6 +470,13 @@
 
 .error-message.show {
     opacity: 1;
+}
+
+.success-message {
+    min-height: 1.2rem;
+    margin-top: 0.5rem;
+    color: var(--fc-gold-soft);
+    font-size: 0.85rem;
 }
 
 /* Styles for the Logged-In View */
@@ -576,6 +526,12 @@
     z-index: 2000;
     opacity: 0;
     transition: opacity 0.3s ease;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
 }
 
 .success-modal.show {
@@ -627,7 +583,7 @@
         min-height: 100vh;
         overflow-x: hidden;
     }
-    
+
     .auth-container {
         padding: 2rem 1.5rem;
         margin: 0 1rem;
@@ -635,48 +591,48 @@
         width: calc(100% - 2rem);
         border-radius: 15px;
     }
-    
+
     .form-title {
         font-size: 1.8rem;
         margin-bottom: 0.5rem;
     }
-    
+
     .auth-tabs {
         margin-bottom: 2rem;
         border-radius: 10px;
     }
-    
+
     .tab-btn {
         padding: 0.875rem 1rem;
         font-size: 1rem;
     }
-    
+
     .social-buttons {
         flex-direction: column;
         gap: 1rem;
     }
-    
+
     .form-options {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
-    
+
     /* Prevent horizontal overflow */
     .auth-container::before {
         display: none;
     }
-    
+
     /* Ensure proper spacing */
     .form-group {
         margin-bottom: 1.25rem;
     }
-    
+
     .form-group input {
         padding: 0.875rem 1rem;
         font-size: 0.95rem;
     }
-    
+
     .submit-btn {
         width: 100%;
         padding: 1rem;
@@ -688,107 +644,62 @@
     .auth-main {
         padding: 80px 0.5rem 1rem;
         overflow-x: hidden;
+        width: 100%;
     }
-    
+
     .auth-container {
         padding: 1.5rem 1rem;
         margin: 0 0.5rem;
         width: calc(100% - 1rem);
+        max-width: 100%;
         border-radius: 12px;
+        box-sizing: border-box;
     }
-    
+
     .form-title {
         font-size: 1.5rem;
         margin-bottom: 0.5rem;
     }
-    
+
     .form-group input {
         padding: 0.75rem 0.875rem;
         font-size: 0.9rem;
     }
-    
+
     .submit-btn {
         padding: 0.875rem;
         font-size: 0.95rem;
     }
-    
+
     .auth-tabs {
         padding: 0.375rem;
         margin-bottom: 1.5rem;
     }
-    
+
     .tab-btn {
         padding: 0.75rem 0.875rem;
         font-size: 0.9rem;
     }
-    
-    /* Prevent any horizontal scrolling */
+
     body {
         overflow-x: hidden;
     }
-    
-    .auth-main {
-        overflow-x: hidden;
-        width: 100%;
-    }
-    
-    /* Ensure container doesn't overflow */
-    .auth-container {
-        box-sizing: border-box;
-        max-width: 100%;
-        overflow: hidden;
-    }
-    
-    /* Fix any potential overflow issues */
+
     .form {
         width: 100%;
-        overflow: hidden;
     }
-    
+
     .form-group {
         width: 100%;
-        overflow: hidden;
     }
-    
+
     .form-group input {
         width: 100%;
         box-sizing: border-box;
     }
-    
-    /* Ensure social buttons don't overflow */
+
     .social-buttons {
         width: 100%;
         box-sizing: border-box;
     }
-    
-    .social-btn {
-        width: 100%;
-        box-sizing: border-box;
-    }
 }
-
-/* Loading States */
-.auth-container.loading {
-    pointer-events: none;
-    opacity: 0.8;
-}
-
-.auth-container.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--antique-gold);
-    border-top: 3px solid transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    z-index: 10;
-}
-
-@keyframes spin {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
-} 

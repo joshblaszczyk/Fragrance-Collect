@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title description">
+  <title id="title">Fragrance image unavailable</title>
+  <desc id="description">A dark gold line drawing of a perfume bottle.</desc>
+  <rect width="600" height="600" fill="#171719"/>
+  <circle cx="300" cy="278" r="198" fill="#2b2823" opacity=".78"/>
+  <circle cx="300" cy="278" r="154" fill="none" stroke="#d6b566" stroke-width="2" opacity=".18"/>
+  <g fill="none" stroke="#c9b278" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="15" d="M244 170h112v70c0 18 9 35 24 45l18 13c20 14 32 37 32 62v94c0 28-23 51-51 51H221c-28 0-51-23-51-51v-94c0-25 12-48 32-62l18-13c15-10 24-27 24-45z"/>
+    <path stroke-width="11" d="M239 142h122v42H239zM216 342h168v102H216z"/>
+    <path stroke="#d6b566" stroke-width="7" d="M261 393h78"/>
+  </g>
+  <text x="300" y="548" fill="#a9a39a" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="4" text-anchor="middle">IMAGE UNAVAILABLE</text>
+</svg>
