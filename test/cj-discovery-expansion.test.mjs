@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import worker, { __catalogInternals as catalog } from '../weathered-mud-6ed5/src/integrated-worker.js';
-import { withCJCache } from '../weathered-mud-6ed5/src/cj-integration.js';
+import { getCJAdvertisers, withCJCache } from '../weathered-mud-6ed5/src/cj-integration.js';
 
 const liveJoinedAdvertisers = Object.freeze([
   { id: '7287203', name: 'FragranceShop.com' },
@@ -96,6 +96,47 @@ function joinedAdvertiserXml() {
     </advertiser>`).join('');
   return `<cj-api><advertisers total-matched="${liveJoinedAdvertisers.length}" records-returned="${liveJoinedAdvertisers.length}" page-number="1">${records}</advertisers></cj-api>`;
 }
+
+test('CJ XML parsing decodes one entity layer and cannot reform markup', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`
+    <cj-api>
+      <advertisers total-matched="1" records-returned="1" page-number="1">
+        <advertiser>
+          <advertiser-id>1001</advertiser-id>
+          <advertiser-name>Tom &amp; Jerry &amp;lt;script&amp;gt;Literal&amp;lt;/script&amp;gt;</advertiser-name>
+          <account-status>Active</account-status>
+          <relationship-status>Joined</relationship-status>
+          <program-url>https://retailer.example/?a=1&amp;b=2</program-url>
+          <link-types>
+            <link-type>&lt;script</link-type>
+            <link-type><![CDATA[<b>Banner</b>]]></link-type>
+            <link-type><scr<script>ipt></link-type>
+            <link-type>&#60;img src=x onerror=alert(1)&#62;</link-type>
+            <link-type>&amp;#60;script&amp;#62;</link-type>
+          </link-types>
+        </advertiser>
+      </advertisers>
+    </cj-api>`, {
+    status: 200,
+    headers: { 'Content-Type': 'application/xml' }
+  });
+
+  try {
+    const result = await getCJAdvertisers({
+      CJ_DEV_KEY: 'test-cj-token',
+      CJ_COMPANY_ID: '12345'
+    }, { pageSize: 1 });
+    const advertiser = result.data.advertisers[0];
+    assert.equal(advertiser.name, 'Tom & Jerry &lt;script&gt;Literal&lt;/script&gt;');
+    assert.equal(advertiser.programUrl, 'https://retailer.example/?a=1&b=2');
+    assert.ok(advertiser.linkTypes.includes('Banner'));
+    assert.ok(advertiser.linkTypes.includes('&#60;script&#62;'));
+    assert.ok(advertiser.linkTypes.every((value) => !/[<>]/.test(value)));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test('builds separate Dior and Chanel recall branches, including canonical feed aliases', () => {
   const dior = catalog.buildCJDiscoveryQueries({ query: 'Dior', brand: 'Dior' });
@@ -234,15 +275,21 @@ test('the public partnerId filter validates all-mode requests against active joi
   const productRequests = [];
   let advertiserLookupFails = false;
   globalThis.fetch = async (input, init = {}) => {
-    const url = String(input);
-    if (url.includes('advertiser-lookup.api.cj.com')) {
+    const requestUrl = new URL(input instanceof Request ? input.url : String(input));
+    if (
+      requestUrl.origin === 'https://advertiser-lookup.api.cj.com'
+      && requestUrl.pathname === '/v2/advertiser-lookup'
+    ) {
       if (advertiserLookupFails) throw new Error('simulated advertiser lookup outage');
       return new Response(joinedAdvertiserXml(), {
         status: 200,
         headers: { 'Content-Type': 'application/xml' }
       });
     }
-    if (url.includes('ads.api.cj.com/query')) {
+    if (
+      requestUrl.origin === 'https://ads.api.cj.com'
+      && requestUrl.pathname === '/query'
+    ) {
       productRequests.push(JSON.parse(init.body).variables);
       return new Response(JSON.stringify({
         data: { shoppingProducts: { totalCount: 0, resultList: [] } }
@@ -251,7 +298,7 @@ test('the public partnerId filter validates all-mode requests against active joi
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    throw new Error(`Unexpected test request: ${url}`);
+    throw new Error(`Unexpected test request: ${requestUrl.href}`);
   };
 
   const env = {

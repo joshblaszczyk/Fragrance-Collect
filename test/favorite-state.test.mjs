@@ -143,8 +143,14 @@ test('keeps filtered favorites in the selected currency and removes stale saved 
   assert.match(catalog, /displayedPriceCurrency/);
   assert.match(catalog, /const normalizedPriceAmount = SecurityUtils\.validateNumber\(priceAmount, 0, 10_000, 0\)/);
   assert.match(catalog, /const normalizedPriceCurrency = \/\^\[A-Z\]\{3\}\$\/\.test\(String\(priceCurrency/);
-  assert.match(catalog, /data-original-price="\$\{normalizedPriceAmount\}" data-original-currency="\$\{normalizedPriceCurrency\}"/);
-  assert.match(catalog, /const safeProductUrl = SecurityUtils\.escapeHtml\(SecurityUtils\.validateUrl/);
+  assert.match(catalog, /price\.dataset\.originalPrice = String\(normalizedPriceAmount\)/);
+  assert.match(catalog, /price\.dataset\.originalCurrency = normalizedPriceCurrency/);
+  assert.match(catalog, /price\.textContent = `\$\{currencySymbol\}\$\{displayPrice\} \$\{displayedPriceCurrency\}`/);
+  assert.match(catalog, /const productUrl = SecurityUtils\.validateUrl/);
+  assert.match(catalog, /function createFavoriteRatingElement/);
+  assert.match(catalog, /count\.textContent = ` \(\$\{reviewCount\.toLocaleString\(\)\}\)`/);
+  assert.match(catalog, /const card = document\.createElement\('article'\)/);
+  assert.doesNotMatch(catalog, /tempDiv\.innerHTML = cardHTML/);
   assert.match(catalog, /function commitFavoriteRemoval\(fragranceId, triggerButton\)/);
   assert.match(catalog, /currentFavorites = currentFavorites\.filter/);
   assert.match(catalog, /if \(wasFavorited\) commitFavoriteRemoval\(fragranceId, button\)/);

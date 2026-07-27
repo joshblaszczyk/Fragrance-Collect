@@ -58,21 +58,57 @@ function safeHttpsUrl(value) {
   }
 }
 
+const XML_NAMED_ENTITIES = Object.freeze({
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'"
+});
+
 function decodeXml(value = '') {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .trim();
+  return String(value).replace(
+    /<!\[CDATA\[([\s\S]*?)\]\]>|&(amp|lt|gt|quot|apos|#x[0-9a-f]+|#[0-9]+);/gi,
+    (match, cdata, entity) => {
+      if (cdata !== undefined) return cdata;
+      const normalized = entity.toLowerCase();
+      if (Object.hasOwn(XML_NAMED_ENTITIES, normalized)) return XML_NAMED_ENTITIES[normalized];
+      const codePoint = normalized.startsWith('#x')
+        ? Number.parseInt(normalized.slice(2), 16)
+        : Number.parseInt(normalized.slice(1), 10);
+      if (!Number.isInteger(codePoint) || codePoint <= 0 || codePoint > 0x10ffff
+        || (codePoint >= 0xd800 && codePoint <= 0xdfff)) return match;
+      return String.fromCodePoint(codePoint);
+    }
+  ).trim();
+}
+
+function stripXmlMarkup(value) {
+  let text = '';
+  let insideTag = false;
+  for (const character of String(value)) {
+    if (character === '<') {
+      insideTag = true;
+      if (text && !/\s$/.test(text)) text += ' ';
+      continue;
+    }
+    if (character === '>') {
+      insideTag = false;
+      if (text && !/\s$/.test(text)) text += ' ';
+      continue;
+    }
+    if (insideTag) {
+      continue;
+    }
+    text += character;
+  }
+  return text;
 }
 
 function xmlValue(block, tag, maxLength = 2000) {
   const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = block.match(new RegExp(`<${escaped}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escaped}>`, 'i'));
-  return safeText(decodeXml(match?.[1] || '').replace(/<[^>]+>/g, ' '), maxLength).replace(/\s+/g, ' ');
+  return safeText(stripXmlMarkup(decodeXml(match?.[1] || '')), maxLength).replace(/\s+/g, ' ');
 }
 
 function xmlBlocks(xml, tag) {
@@ -244,7 +280,9 @@ export async function getCJAdvertisers(env, options = {}) {
         child: xmlValue(block, 'child', 100) || null
       },
       performanceIncentives: xmlValue(block, 'performance-incentives', 10).toLowerCase() === 'true',
-      linkTypes: xmlBlocks(block, 'link-type').map((value) => safeText(decodeXml(value).replace(/<[^>]+>/g, ''), 80)).filter(Boolean)
+      linkTypes: xmlBlocks(block, 'link-type')
+        .map((value) => safeText(stripXmlMarkup(decodeXml(value)), 80).replace(/\s+/g, ' '))
+        .filter(Boolean)
     })).filter((advertiser) => advertiser.id && advertiser.name);
 
     return {

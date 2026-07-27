@@ -563,10 +563,6 @@ async function verifyPasswordRecord(password, storedHash) {
       return { valid: compareHashes(calculated, legacyPBKDF2[2].toLowerCase()), needsRehash: true };
     }
 
-    // One final lazy migration path for historical unsalted SHA-512 rows.
-    if (/^[a-f0-9]{128}$/i.test(storedHash)) {
-      return { valid: compareHashes(await sha512(password), storedHash.toLowerCase()), needsRehash: true };
-    }
     return { valid: false, needsRehash: false };
 }
 

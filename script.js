@@ -2974,7 +2974,42 @@ function createProductCard(perfume) {
     `;
 }
 
-// Create perfume card with favorite button for authenticated users
+function createFavoriteRatingElement(rating, reviewCount) {
+    if (typeof rating !== 'number' || !Number.isFinite(rating) || rating <= 0 || rating > 5) return null;
+    const safeRating = SecurityUtils.validateNumber(rating, 0, 5, 0);
+    const ratingElement = document.createElement('div');
+    ratingElement.className = 'product-rating';
+    ratingElement.setAttribute('role', 'img');
+    ratingElement.setAttribute('aria-label', `Rating: ${safeRating.toFixed(1)} out of 5 stars`);
+
+    const fullStars = Math.floor(safeRating);
+    const hasHalfStar = safeRating % 1 !== 0;
+    const emptyStars = 5 - Math.ceil(safeRating);
+    const appendStar = (className) => {
+        const star = document.createElement('i');
+        star.className = className;
+        star.setAttribute('aria-hidden', 'true');
+        ratingElement.appendChild(star);
+    };
+    for (let index = 0; index < fullStars; index += 1) appendStar('fa-solid fa-star');
+    if (hasHalfStar) appendStar('fa-solid fa-star-half-stroke');
+    for (let index = 0; index < emptyStars; index += 1) appendStar('fa-regular fa-star');
+
+    const ratingNumber = document.createElement('span');
+    ratingNumber.className = 'rating-number';
+    ratingNumber.textContent = safeRating.toFixed(1);
+    ratingElement.appendChild(ratingNumber);
+    if (Number.isInteger(reviewCount) && reviewCount > 0) {
+        const count = document.createElement('span');
+        count.className = 'review-count';
+        count.textContent = ` (${reviewCount.toLocaleString()})`;
+        ratingElement.appendChild(count);
+    }
+    return ratingElement;
+}
+
+// Create a favorite card with DOM APIs so saved retailer data is never
+// reinterpreted as markup.
 function createPerfumeCard(perfume) {
     // --- Data Standardization ---
     // The 'perfume' object can come from the API or the local favorites DB,
@@ -3012,45 +3047,93 @@ function createPerfumeCard(perfume) {
     const rating = typeof perfume.rating === 'number' && Number.isFinite(perfume.rating)
         ? SecurityUtils.validateNumber(perfume.rating, 0, 5, 0)
         : null;
-    const ratingMarkup = createRatingMarkup(rating, perfume.reviewCount);
     const shipping = formatShipping(perfume);
     const displayPrice = displayedPriceAmount.toFixed(2);
     const currencySymbol = currencySymbols[displayedPriceCurrency] || '$';
     const isFavorited = userFavorites.has(fragranceId);
-    const safeId = SecurityUtils.escapeHtml(String(fragranceId || ''));
-    const safeName = SecurityUtils.escapeHtml(perfume.name || 'Unnamed fragrance');
-    const safeAdvertiser = SecurityUtils.escapeHtml(perfume.advertiserName || 'Unknown retailer');
-    const safeImageUrl = SecurityUtils.escapeHtml(SecurityUtils.validateUrl(perfume.imageUrl || '') || 'assets/images/fragrance-placeholder.svg');
-    const safeProductUrl = SecurityUtils.escapeHtml(SecurityUtils.validateUrl(perfume.productUrl || ''));
-    const dealMarkup = safeProductUrl
-        ? `<a href="${safeProductUrl}" target="_blank" rel="nofollow sponsored noopener" class="btn-view-deal">View Deal <i class="fas fa-arrow-right" aria-hidden="true"></i></a>`
-        : '<span class="btn-view-deal is-disabled" aria-disabled="true">Retailer link unavailable</span>';
+    const imageUrl = SecurityUtils.validateUrl(perfume.imageUrl || '') || 'assets/images/fragrance-placeholder.svg';
+    const productUrl = SecurityUtils.validateUrl(perfume.productUrl || '');
     setFavoriteViewProductData(fragranceId, perfumeDataForToggle);
 
-    return `
-        <article class="product-card" data-id="${safeId}" data-brand="${SecurityUtils.escapeHtml((perfume.advertiserName || '').toLowerCase().replace(/\s+/g, '-'))}" data-price="${normalizedPriceAmount}" data-rating="${rating ?? ''}">
-            <div class="product-image-container">
-                <button type="button" class="favorite-btn ${isFavorited ? 'favorited' : ''}"
-                        data-id="${safeId}"
-                        aria-pressed="${isFavorited}"
-                        aria-label="${isFavorited ? 'Remove from' : 'Add to'} favorites">
-                    <i class="fas fa-heart" aria-hidden="true"></i>
-                </button>
-                <img src="${safeImageUrl}" alt="" class="product-image" width="600" height="600" loading="lazy" decoding="async">
-            </div>
-            <div class="product-info">
-                <h3 class="product-name">${safeName}</h3>
-                <p class="product-brand">Saved offer</p>
-                <p class="product-retailer">Sold by ${safeAdvertiser}</p>
-                ${ratingMarkup}
-                <p class="product-price" data-original-price="${normalizedPriceAmount}" data-original-currency="${normalizedPriceCurrency}">${currencySymbol}${displayPrice} ${displayedPriceCurrency}</p>
-            </div>
-            <div class="product-meta">
-                <div class="product-shipping ${shipping.cls}">${shipping.text}</div>
-                ${dealMarkup}
-            </div>
-        </article>
-    `;
+    const card = document.createElement('article');
+    card.className = 'product-card';
+    card.dataset.id = String(fragranceId || '');
+    card.dataset.brand = String(perfume.advertiserName || '').toLowerCase().replace(/\s+/g, '-');
+    card.dataset.price = String(normalizedPriceAmount);
+    card.dataset.rating = rating === null ? '' : String(rating);
+
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'product-image-container';
+    const favoriteButton = document.createElement('button');
+    favoriteButton.type = 'button';
+    favoriteButton.className = `favorite-btn${isFavorited ? ' favorited' : ''}`;
+    favoriteButton.dataset.id = String(fragranceId || '');
+    favoriteButton.setAttribute('aria-pressed', String(isFavorited));
+    favoriteButton.setAttribute('aria-label', `${isFavorited ? 'Remove from' : 'Add to'} favorites`);
+    const favoriteIcon = document.createElement('i');
+    favoriteIcon.className = 'fas fa-heart';
+    favoriteIcon.setAttribute('aria-hidden', 'true');
+    favoriteButton.appendChild(favoriteIcon);
+    const image = document.createElement('img');
+    image.src = imageUrl;
+    image.alt = '';
+    image.className = 'product-image';
+    image.width = 600;
+    image.height = 600;
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    imageContainer.append(favoriteButton, image);
+
+    const info = document.createElement('div');
+    info.className = 'product-info';
+    const name = document.createElement('h3');
+    name.className = 'product-name';
+    name.textContent = perfume.name || 'Unnamed fragrance';
+    const brand = document.createElement('p');
+    brand.className = 'product-brand';
+    brand.textContent = 'Saved offer';
+    const retailer = document.createElement('p');
+    retailer.className = 'product-retailer';
+    retailer.textContent = `Sold by ${perfume.advertiserName || 'Unknown retailer'}`;
+    info.append(name, brand, retailer);
+    const ratingElement = createFavoriteRatingElement(rating, perfume.reviewCount);
+    if (ratingElement) info.appendChild(ratingElement);
+    const price = document.createElement('p');
+    price.className = 'product-price';
+    price.dataset.originalPrice = String(normalizedPriceAmount);
+    price.dataset.originalCurrency = normalizedPriceCurrency;
+    price.textContent = `${currencySymbol}${displayPrice} ${displayedPriceCurrency}`;
+    info.appendChild(price);
+
+    const meta = document.createElement('div');
+    meta.className = 'product-meta';
+    const shippingElement = document.createElement('div');
+    shippingElement.className = 'product-shipping';
+    if (shipping.cls) shippingElement.classList.add(shipping.cls);
+    shippingElement.textContent = shipping.text;
+    meta.appendChild(shippingElement);
+    if (productUrl) {
+        const deal = document.createElement('a');
+        deal.href = productUrl;
+        deal.target = '_blank';
+        deal.rel = 'nofollow sponsored noopener';
+        deal.className = 'btn-view-deal';
+        deal.append('View Deal ');
+        const arrow = document.createElement('i');
+        arrow.className = 'fas fa-arrow-right';
+        arrow.setAttribute('aria-hidden', 'true');
+        deal.appendChild(arrow);
+        meta.appendChild(deal);
+    } else {
+        const unavailable = document.createElement('span');
+        unavailable.className = 'btn-view-deal is-disabled';
+        unavailable.setAttribute('aria-disabled', 'true');
+        unavailable.textContent = 'Retailer link unavailable';
+        meta.appendChild(unavailable);
+    }
+
+    card.append(imageContainer, info, meta);
+    return card;
 }
 
 // Generate star rating HTML
@@ -4040,13 +4123,7 @@ function displayFavorites(favorites) {
                 displayCurrency
             };
 
-            // Re-purposing createPerfumeCard for favorites
-            const cardHTML = createPerfumeCard(perfumeData);
-
-            // Convert HTML string to DOM node
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = cardHTML;
-            const card = tempDiv.firstElementChild;
+            const card = createPerfumeCard(perfumeData);
 
             if (card) {
                 authUI.favoritesGrid.appendChild(card);

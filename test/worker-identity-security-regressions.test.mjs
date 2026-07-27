@@ -12,6 +12,8 @@ const workerSource = readFileSync(new URL('weathered-mud-6ed5/src/integrated-wor
 const wranglerSource = readFileSync(new URL('weathered-mud-6ed5/wrangler.toml', root), 'utf8');
 const migrationDirectory = new URL('weathered-mud-6ed5/migrations/', root);
 const deployedApiOrigin = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
+const CURRENT_PASSWORD_TEST_VECTOR = 'pbkdf2-sha512-v1$240000$ffeeddccbbaa99887766554433221100$f373b5c7df3ba8b813a3dd90f07487e465aec91cfe8dd882d944877c48c52d5e86a74ce69d2d237e2d5b52120195f5088eddb840e309ccce3a44983719ce309f';
+const LEGACY_PBKDF2_TEST_VECTOR = '00112233445566778899aabbccddeeff:e9584c5248ee21cec2ff4b97c9e9fce22eab07a51637edb1a84ae0b136c9dfc29af8da9d5451779665e790a1f826a4a29d05712f7a2a625d198d8a6a5e1443c2';
 
 class D1StatementStub {
   constructor(database, sql, parameters = []) {
@@ -92,7 +94,7 @@ function createFixture() {
   };
 }
 
-function sha512(value) {
+function opaqueTokenDigest(value) {
   return createHash('sha512').update(value).digest('hex');
 }
 
@@ -372,7 +374,7 @@ test('password signup requires mailbox proof, normalizes email, bounds sessions,
       fixture.database.prepare(`
         INSERT INTO user_sessions (id, user_id, token, expires_at, fingerprint)
         VALUES (?, ?, ?, ?, ?)
-      `).run(`extra-${index}`, storedUser.id, sha512(`extra-token-${index}`), new Date(Date.now() + 60_000).toISOString(), sha512('ua:security-regression-agent'));
+      `).run(`extra-${index}`, storedUser.id, opaqueTokenDigest(`extra-token-${index}`), new Date(Date.now() + 60_000).toISOString(), opaqueTokenDigest('ua:security-regression-agent'));
     }
     const freshLogin = await integratedWorker.fetch(localJsonRequest('/api/login/email', 'POST', {
       email: 'case.owner@example.com', password
@@ -425,8 +427,8 @@ test('provider-only deletion requests fresh Google reauthentication and export f
       INSERT INTO user_sessions (id, user_id, token, expires_at, fingerprint)
       VALUES (?, ?, ?, ?, ?)
     `).run(
-      'google-session', 'google-owner', sha512(sessionToken),
-      new Date(Date.now() + 60_000).toISOString(), sha512('ua:security-regression-agent')
+      'google-session', 'google-owner', opaqueTokenDigest(sessionToken),
+      new Date(Date.now() + 60_000).toISOString(), opaqueTokenDigest('ua:security-regression-agent')
     );
 
     fixture.database.exec('DROP TABLE outbound_clicks');
@@ -455,7 +457,7 @@ test('provider-only deletion requests fresh Google reauthentication and export f
   }
 });
 
-test('legacy password login lazily upgrades to the versioned 240k PBKDF2 record', async () => {
+test('legacy salted PBKDF2 login lazily upgrades to the versioned 240k PBKDF2 record', async () => {
   const fixture = createFixture();
   try {
     const password = 'Legacy9!Password';
@@ -463,7 +465,7 @@ test('legacy password login lazily upgrades to the versioned 240k PBKDF2 record'
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash, email_verified_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('legacy-login', 'legacy.login@example.com', 'Legacy Login', sha512(password), verifiedAt);
+    `).run('legacy-login', 'legacy.login@example.com', 'Legacy Login', LEGACY_PBKDF2_TEST_VECTOR, verifiedAt);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
       VALUES (?, ?, 'password', ?, ?, ?)
@@ -495,7 +497,6 @@ test('password recovery sends a fragment credential, consumes it once, and rotat
     });
   };
   try {
-    const oldPassword = 'OldPassword9!';
     const newPassword = 'NewPassword9!';
     const verifiedAt = new Date().toISOString();
     Object.assign(fixture.env, {
@@ -505,7 +506,7 @@ test('password recovery sends a fragment credential, consumes it once, and rotat
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash, email_verified_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('reset-owner', 'reset.owner@example.com', 'Reset Owner', sha512(oldPassword), verifiedAt);
+    `).run('reset-owner', 'reset.owner@example.com', 'Reset Owner', CURRENT_PASSWORD_TEST_VECTOR, verifiedAt);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
       VALUES (?, ?, 'password', ?, ?, ?)
@@ -514,8 +515,8 @@ test('password recovery sends a fragment credential, consumes it once, and rotat
       INSERT INTO user_sessions (id, user_id, token, expires_at, fingerprint)
       VALUES (?, ?, ?, ?, ?)
     `).run(
-      'old-reset-session', 'reset-owner', sha512('old_session_token_value_123456789012345'),
-      new Date(Date.now() + 60_000).toISOString(), sha512('ua:security-regression-agent')
+      'old-reset-session', 'reset-owner', opaqueTokenDigest('old_session_token_value_123456789012345'),
+      new Date(Date.now() + 60_000).toISOString(), opaqueTokenDigest('ua:security-regression-agent')
     );
 
     const emailContext = createExecutionContext();
@@ -532,7 +533,7 @@ test('password recovery sends a fragment credential, consumes it once, and rotat
     assert.equal(
       fixture.database.prepare('SELECT token_hash FROM password_reset_tokens WHERE user_id = ?')
         .get('reset-owner').token_hash,
-      sha512(token),
+      opaqueTokenDigest(token),
       'only the token digest may be stored'
     );
 
@@ -582,7 +583,7 @@ test('failed email delivery preserves older recovery links while one redemption 
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash)
       VALUES (?, ?, ?, ?)
-    `).run('verification-overlap', 'verification.overlap@example.com', 'Verification Overlap', sha512('OldPassword9!'));
+    `).run('verification-overlap', 'verification.overlap@example.com', 'Verification Overlap', CURRENT_PASSWORD_TEST_VECTOR);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email)
       VALUES (?, ?, 'password', ?, ?)
@@ -593,7 +594,7 @@ test('failed email delivery preserves older recovery links while one redemption 
     fixture.database.prepare(`
       INSERT INTO email_verification_tokens (id, user_id, token_hash, expires_at, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('old-verification-row', 'verification-overlap', sha512(oldVerificationToken), expiresAt, createdAt);
+    `).run('old-verification-row', 'verification-overlap', opaqueTokenDigest(oldVerificationToken), expiresAt, createdAt);
 
     const verificationContext = createExecutionContext();
     const resend = await integratedWorker.fetch(localJsonRequest('/api/signup/verification/resend', 'POST', {
@@ -620,7 +621,7 @@ test('failed email delivery preserves older recovery links while one redemption 
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash, email_verified_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('reset-overlap', 'reset.overlap@example.com', 'Reset Overlap', sha512('OldPassword9!'), verifiedAt);
+    `).run('reset-overlap', 'reset.overlap@example.com', 'Reset Overlap', CURRENT_PASSWORD_TEST_VECTOR, verifiedAt);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
       VALUES (?, ?, 'password', ?, ?, ?)
@@ -631,7 +632,7 @@ test('failed email delivery preserves older recovery links while one redemption 
     fixture.database.prepare(`
       INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('old-reset-row', 'reset-overlap', sha512(oldResetToken), expiresAt, createdAt);
+    `).run('old-reset-row', 'reset-overlap', opaqueTokenDigest(oldResetToken), expiresAt, createdAt);
 
     const resetContext = createExecutionContext();
     const forgot = await integratedWorker.fetch(localJsonRequest('/api/password/forgot', 'POST', {
@@ -658,7 +659,7 @@ test('failed email delivery preserves older recovery links while one redemption 
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash)
       VALUES (?, ?, ?, ?)
-    `).run('verification-cap', 'verification.cap@example.com', 'Verification Cap', sha512('OldPassword9!'));
+    `).run('verification-cap', 'verification.cap@example.com', 'Verification Cap', CURRENT_PASSWORD_TEST_VECTOR);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email)
       VALUES (?, ?, 'password', ?, ?)
@@ -671,7 +672,7 @@ test('failed email delivery preserves older recovery links while one redemption 
       VALUES (?, 'verification-cap', ?, ?, ?)
     `);
     for (let index = 0; index < 8; index += 1) {
-      insertCappedToken.run(`cap-token-${index}`, sha512(`cap-token-${index}`), expiresAt, createdAt);
+      insertCappedToken.run(`cap-token-${index}`, opaqueTokenDigest(`cap-token-${index}`), expiresAt, createdAt);
     }
     const cappedContext = createExecutionContext();
     const capped = await integratedWorker.fetch(localJsonRequest('/api/signup/verification/resend', 'POST', {
@@ -697,7 +698,7 @@ test('sibling verification and reset tokens are claimed account-atomically', asy
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash)
       VALUES (?, ?, ?, ?)
-    `).run('verification-race', 'verification.race@example.com', 'Verification Race', sha512('OldPassword9!'));
+    `).run('verification-race', 'verification.race@example.com', 'Verification Race', CURRENT_PASSWORD_TEST_VECTOR);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email)
       VALUES (?, ?, 'password', ?, ?)
@@ -711,7 +712,7 @@ test('sibling verification and reset tokens are claimed account-atomically', asy
       VALUES (?, 'verification-race', ?, ?, ?)
     `);
     verificationTokens.forEach((token, index) => {
-      insertVerification.run(`verification-race-${index}`, sha512(token), expiresAt, createdAt);
+      insertVerification.run(`verification-race-${index}`, opaqueTokenDigest(token), expiresAt, createdAt);
     });
     const verificationResponses = await Promise.all(verificationTokens.map((token, index) => integratedWorker.fetch(
       localJsonRequest('/api/signup/verify', 'POST', { token }, { ip: `192.0.2.${180 + index}` }),
@@ -727,7 +728,7 @@ test('sibling verification and reset tokens are claimed account-atomically', asy
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash, email_verified_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('reset-race', 'reset.race@example.com', 'Reset Race', sha512('OldPassword9!'), verifiedAt);
+    `).run('reset-race', 'reset.race@example.com', 'Reset Race', CURRENT_PASSWORD_TEST_VECTOR, verifiedAt);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
       VALUES (?, ?, 'password', ?, ?, ?)
@@ -738,7 +739,7 @@ test('sibling verification and reset tokens are claimed account-atomically', asy
       VALUES (?, 'reset-race', ?, ?, ?)
     `);
     resetTokens.forEach((token, index) => {
-      insertReset.run(`reset-race-${index}`, sha512(token), expiresAt, createdAt);
+      insertReset.run(`reset-race-${index}`, opaqueTokenDigest(token), expiresAt, createdAt);
     });
     const resetResponses = await Promise.all(resetTokens.map((token, index) => integratedWorker.fetch(
       localJsonRequest('/api/password/reset', 'POST', {
@@ -765,7 +766,7 @@ test('in-flight issuance cannot recreate a token after verification or password 
     verificationFixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash)
       VALUES (?, ?, ?, ?)
-    `).run('issuance-verify-race', 'issuance.verify@example.com', 'Issuance Verify', sha512('OldPassword9!'));
+    `).run('issuance-verify-race', 'issuance.verify@example.com', 'Issuance Verify', CURRENT_PASSWORD_TEST_VECTOR);
     verificationFixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email)
       VALUES (?, ?, 'password', ?, ?)
@@ -776,7 +777,7 @@ test('in-flight issuance cannot recreate a token after verification or password 
     verificationFixture.database.prepare(`
       INSERT INTO email_verification_tokens (id, user_id, token_hash, expires_at)
       VALUES (?, ?, ?, ?)
-    `).run('issuance-verify-old', 'issuance-verify-race', sha512(oldToken), expiresAt);
+    `).run('issuance-verify-old', 'issuance-verify-race', opaqueTokenDigest(oldToken), expiresAt);
 
     const paused = pauseAfterFirstMatchingRead(
       verificationFixture.env.DB,
@@ -816,7 +817,7 @@ test('in-flight issuance cannot recreate a token after verification or password 
       RESEND_FROM: 'Fragrance Collect <support@fragrancecollect.com>'
     });
     const oldToken = 'f'.repeat(48);
-    const oldPasswordHash = sha512('OldPassword9!');
+    const oldPasswordHash = CURRENT_PASSWORD_TEST_VECTOR;
     const verifiedAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
     resetFixture.database.prepare(`
@@ -833,7 +834,7 @@ test('in-flight issuance cannot recreate a token after verification or password 
     resetFixture.database.prepare(`
       INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('issuance-reset-old', 'issuance-reset-race', sha512(oldToken), expiresAt, verifiedAt);
+    `).run('issuance-reset-old', 'issuance-reset-race', opaqueTokenDigest(oldToken), expiresAt, verifiedAt);
 
     const paused = pauseAfterFirstMatchingRead(resetFixture.env.DB, 'AS password_version');
     resetFixture.env.DB = paused.binding;
@@ -885,7 +886,7 @@ test('signup, verification resend, and password recovery hide provider latency a
     fixture.database.prepare(`
       INSERT INTO users (id, email, name, password_hash, email_verified_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run('existing-owner', 'existing@example.com', 'Existing Owner', sha512('Existing9!Pass'), verifiedAt);
+    `).run('existing-owner', 'existing@example.com', 'Existing Owner', CURRENT_PASSWORD_TEST_VECTOR, verifiedAt);
     fixture.database.prepare(`
       INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
       VALUES (?, ?, 'password', ?, ?, ?)
@@ -1257,8 +1258,8 @@ test('watch and favorite collection caps remain atomic while existing records st
       INSERT INTO user_sessions (id, user_id, token, expires_at, fingerprint)
       VALUES (?, ?, ?, ?, ?)
     `).run(
-      'bounded-session', 'bounded-owner', sha512(sessionToken),
-      new Date(Date.now() + 60_000).toISOString(), sha512('ua:security-regression-agent')
+      'bounded-session', 'bounded-owner', opaqueTokenDigest(sessionToken),
+      new Date(Date.now() + 60_000).toISOString(), opaqueTokenDigest('ua:security-regression-agent')
     );
 
     for (let index = 0; index < 19; index += 1) {
@@ -1584,8 +1585,8 @@ test('CJ admin reporting validates inputs and charges every upstream page to dur
       INSERT INTO user_sessions (id, user_id, token, expires_at, fingerprint)
       VALUES (?, ?, ?, ?, ?)
     `).run(
-      'admin-session', 'admin-owner', sha512(sessionToken),
-      new Date(Date.now() + 60_000).toISOString(), sha512('ua:security-regression-agent')
+      'admin-session', 'admin-owner', opaqueTokenDigest(sessionToken),
+      new Date(Date.now() + 60_000).toISOString(), opaqueTokenDigest('ua:security-regression-agent')
     );
     Object.assign(fixture.env, {
       ADMIN_USER_IDS: 'admin-owner',
@@ -1653,6 +1654,9 @@ test('source-level guards retain sub-keyed ownership, timing equalization, bound
   assert.match(workerSource, /Number\(result\[1\]\?\.meta\?\.changes \|\| 0\) < 1/);
   assert.doesNotMatch(workerSource, /Number\(result\[1\]\?\.meta\?\.changes \|\| 0\) !== 1/);
   assert.match(workerSource, /const passwordHash = user\?\.password_hash \|\| DUMMY_PASSWORD_HASH/);
+  assert.match(workerSource, /Compatibility with the previous `salt:hash` PBKDF2-SHA512 format/);
+  assert.doesNotMatch(workerSource, /historical unsalted SHA-512/);
+  assert.doesNotMatch(workerSource, /sha512\(password\)/);
   assert.ok(
     workerSource.indexOf('const passwordHash = await hashPasswordPBKDF2(password);')
       < workerSource.indexOf("const existingUser = await env.DB.prepare('SELECT id FROM users"),

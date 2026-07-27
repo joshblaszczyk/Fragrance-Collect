@@ -57,11 +57,13 @@ if (/unsafe-eval|https:\/\/\*\.workers\.dev/i.test(csp)) {
   failures.push('Content-Security-Policy contains an unsafe evaluator or wildcard Worker endpoint');
 }
 const connectSrc = csp.match(/(?:^|;)\s*connect-src\s+([^;]+)/i)?.[1] || '';
-if (!connectSrc.split(/\s+/).includes(deployedApiOrigin)) {
+const connectSources = connectSrc.split(/\s+/).filter(Boolean);
+const connectSourceSet = new Set(connectSources);
+if (!connectSourceSet.has(deployedApiOrigin)) {
   failures.push(`connect-src must allow the exact API origin ${deployedApiOrigin}`);
 }
 const configuredWorkerOrigins = [...new Set(
-  connectSrc.match(/https:\/\/[A-Za-z0-9.-]+\.workers\.dev/gi) || []
+  connectSources.filter((source) => /^https:\/\/[A-Za-z0-9.-]+\.workers\.dev$/i.test(source))
 )];
 if (configuredWorkerOrigins.length !== 1 || configuredWorkerOrigins[0] !== deployedApiOrigin) {
   failures.push('connect-src must not allow any workers.dev origin except the deployed API');
