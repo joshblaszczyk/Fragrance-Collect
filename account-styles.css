@@ -10,6 +10,11 @@ body {
     border-top: 1px solid var(--fc-line, rgba(255, 255, 255, 0.1));
 }
 
+.account-alerts-list[hidden],
+.account-empty-state[hidden] {
+    display: none;
+}
+
 .account-alert-item {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr) auto;
@@ -69,11 +74,101 @@ body {
 }
 
 .account-empty-state {
-    margin-top: 24px;
-    padding: 32px;
-    border: 1px dashed var(--fc-gold-line, rgba(214, 181, 102, 0.28));
-    border-radius: 10px;
+    position: relative;
+    display: grid;
+    min-height: 300px;
+    margin-top: 28px;
+    padding: clamp(30px, 6vw, 54px) clamp(20px, 6vw, 56px);
+    place-items: center;
+    align-content: center;
+    gap: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(214, 181, 102, 0.2);
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 50% 0, rgba(214, 181, 102, 0.1), transparent 240px),
+        linear-gradient(145deg, rgba(25, 25, 30, 0.98), rgba(17, 17, 21, 0.98));
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.025), 0 20px 55px rgba(0, 0, 0, 0.2);
     text-align: center;
+}
+
+.account-empty-state__icon {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 6px;
+    place-items: center;
+    border: 1px solid rgba(214, 181, 102, 0.34);
+    border-radius: 16px;
+    background: rgba(214, 181, 102, 0.08);
+    color: var(--fc-gold, #d6b566);
+    font-size: 1.15rem;
+}
+
+.account-empty-state .account-empty-state__eyebrow {
+    margin: 0;
+    color: var(--fc-gold, #d6b566);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+.account-empty-state h3 {
+    margin: 0;
+    color: var(--fc-paper-bright, #faf7f1);
+    font-family: var(--fc-font-display, 'Playfair Display', serif);
+    font-size: clamp(1.55rem, 4vw, 2rem);
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.account-empty-state .account-empty-state__copy {
+    max-width: 48ch;
+    margin: 0;
+    color: var(--fc-muted, #b9b2aa);
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+
+.account-empty-state .account-empty-state__action {
+    display: inline-flex;
+    width: auto;
+    min-width: 220px;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    margin-top: 10px;
+    padding: 0 20px;
+    border: 1px solid var(--fc-gold, #d6b566);
+    border-radius: 10px;
+    background: var(--fc-gold, #d6b566);
+    box-shadow: none;
+    color: var(--fc-ink, #101013);
+    font-family: var(--fc-font-body, 'Lato', sans-serif);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.075em;
+    line-height: 1;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.account-empty-state .account-empty-state__action::before {
+    display: none;
+}
+
+.account-empty-state .account-empty-state__action:hover,
+.account-empty-state .account-empty-state__action:focus-visible {
+    border-color: var(--fc-gold-soft, #ead7a2);
+    background: var(--fc-gold-soft, #ead7a2);
+    box-shadow: none;
+    color: var(--fc-ink, #101013);
+    text-decoration: none;
+    transform: none;
 }
 
 @media (max-width: 620px) {
@@ -84,6 +179,17 @@ body {
     .account-alert-remove {
         grid-column: 2;
         justify-self: start;
+    }
+
+    .account-empty-state {
+        min-height: 270px;
+        padding: 28px 18px;
+        border-radius: 14px;
+    }
+
+    .account-empty-state .account-empty-state__action {
+        width: min(100%, 280px);
+        min-width: 0;
     }
 }
 

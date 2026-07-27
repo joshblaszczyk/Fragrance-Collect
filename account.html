@@ -13,14 +13,14 @@
     <link rel="canonical" href="https://fragrancecollect.com/account.html">
     <link rel="icon" type="image/webp" href="assets/images/emblem-96.webp">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="account-styles.css">
+    <link rel="stylesheet" href="account-styles.css?v=20260727-1">
     <link rel="stylesheet" href="password-change-styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha384-3B6NwesSXE7YJlcLI9RpRqGf2p/EgVH8BgoKTaUrmKNDkHPStTQ3EyoYjCGXaOTS" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <script src="site-config.js"></script>
     <script src="https://accounts.google.com/gsi/client" referrerpolicy="strict-origin-when-cross-origin" async defer></script>
-    <link rel="stylesheet" href="design-system.css">
+    <link rel="stylesheet" href="design-system.css?v=20260727-1">
 </head>
 <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -348,8 +348,16 @@
                         <p>Loading your watches…</p>
                     </div>
                     <div id="alerts-empty-state" class="account-empty-state" hidden>
-                        <p>You have not saved any watches yet.</p>
-                        <a href="/#shop" class="btn">Explore Fragrances</a>
+                        <span class="account-empty-state__icon" aria-hidden="true">
+                            <i class="fas fa-bell"></i>
+                        </span>
+                        <p class="account-empty-state__eyebrow">Nothing tracked yet</p>
+                        <h3>No active deal watches</h3>
+                        <p class="account-empty-state__copy">Open a fragrance to watch its price, availability, or promotions.</p>
+                        <a href="/#shop" class="btn account-empty-state__action">
+                            <span>Browse fragrances</span>
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -440,10 +448,10 @@
     </dialog>
 
     <!-- Universal Header Script -->
-    <script src="universal-header-script.js"></script>
+    <script src="universal-header-script.js?v=20260727-1"></script>
 
     <script src="shared-auth.js"></script>
     <script src="catalog-selects.js"></script>
-    <script src="account.js"></script>
+    <script src="account.js?v=20260727-1"></script>
 </body>
 </html>

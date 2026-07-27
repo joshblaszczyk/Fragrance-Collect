@@ -138,7 +138,7 @@ test('auth flow strips secrets early and implements verification lifecycle', asy
   const referrerIndex = html.indexOf('<meta name="referrer" content="strict-origin-when-cross-origin">');
   assert.ok(referrerIndex >= 0);
   assert.doesNotMatch(html, /<script\b[^>]+accounts\.google\.com\/gsi\/client/);
-  assert.match(html, /<script type="module" src="auth-script\.js"><\/script>/);
+  assert.match(html, /<script type="module" src="auth-script\.js(?:\?v=[^"]+)?"><\/script>/);
   assert.match(script, /resetToken = consumeCredential\('reset_token'\)/);
   assert.match(script, /verifyToken = consumeCredential\('verify_token'\)/);
   assert.match(script, /delete window\.consumeFragranceAuthCredential/);
@@ -157,8 +157,51 @@ test('auth flow strips secrets early and implements verification lifecycle', asy
   assert.match(html, /id="success-modal-secondary"/);
   assert.match(html, /id="password-reset-start-over"/);
   assert.match(script, /function setResetStatus\(/);
-  assert.match(script, /rememberPendingGoogleLink\(error\.recoveryEmail\)/);
-  assert.match(script, /intent\.email === normalizedEmail/);
+  assert.match(script, /error\.recoveryEmail/);
+});
+
+test('pending Google proof is memory-only, short-lived, and replayed with the current password', async () => {
+  const script = await read('auth-script.js');
+  const signinStart = script.indexOf('async function submitSignin(event)');
+  const signinEnd = script.indexOf('async function submitSignup(event)', signinStart);
+  const submitSignin = script.slice(signinStart, signinEnd);
+  assert.ok(signinStart >= 0 && signinEnd > signinStart, 'submitSignin should be present');
+
+  const browserStorageWrites = [...script.matchAll(
+    /(?:sessionStorage|localStorage)\.setItem\(([\s\S]*?)\)\s*;/g
+  )];
+  for (const [storageWrite] of browserStorageWrites) {
+    assert.doesNotMatch(
+      storageWrite,
+      /pendingGoogleCredential|response\.credential|credential\s*:/i,
+      'A Google credential must never be persisted in browser storage.'
+    );
+  }
+  assert.match(
+    script,
+    /PENDING_GOOGLE_(?:LINK_)?CREDENTIAL_TTL_MS\s*=\s*(?:5\s*\*\s*60\s*\*\s*1000|300_?000)/
+  );
+  assert.match(
+    script,
+    /(?:expiresAt\s*:|pendingGoogleCredentialExpiresAt\s*=)\s*Date\.now\(\)\s*\+\s*PENDING_GOOGLE_(?:LINK_)?CREDENTIAL_TTL_MS/
+  );
+  assert.match(
+    script,
+    /function\s+holdPendingGoogleCredential\(credential,[\s\S]{0,500}pendingGoogleCredential\s*=\s*credential/i,
+    'The one-time Google credential should be retained only in module memory.'
+  );
+  assert.match(script, /holdPendingGoogleCredential\(response\??\.credential,/);
+
+  const pagehideStart = script.search(/addEventListener\(['"]pagehide['"]/);
+  assert.ok(pagehideStart >= 0, 'pagehide should clear pending Google proof');
+  assert.match(
+    script.slice(pagehideStart, pagehideStart + 320),
+    /pending[A-Za-z]*Google|clear[A-Za-z]*Pending[A-Za-z]*Google/i
+  );
+
+  assert.match(submitSignin, /requestJson\([\s\S]{0,120}['"]\/api\/login\/google['"]/);
+  assert.match(submitSignin, /currentPassword\s*:\s*password/);
+  assert.match(submitSignin, /(?:token|credential)\s*:\s*(?:pending[A-Za-z]*Google|googleCredential)/i);
 });
 
 test('Google Identity pages disclose only the origin while other pages retain no-referrer', async () => {

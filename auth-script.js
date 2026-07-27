@@ -31,6 +31,9 @@ let pendingVerificationEmail = '';
 let outcomeAction = 'home';
 let outcomeSecondaryAction = '';
 let pendingGoogleLinkEmail = '';
+let pendingGoogleCredential = '';
+let pendingGoogleCredentialEmail = '';
+let pendingGoogleCredentialExpiresAt = 0;
 let googleIdentityInitialized = false;
 let googleRenderAttempts = 0;
 let googleRenderTimer;
@@ -38,6 +41,7 @@ let googleIdentityScriptPromise;
 let authCredentialHandoffCleared = true;
 const PENDING_GOOGLE_LINK_KEY = 'fragrance:pending-google-link';
 const PENDING_GOOGLE_LINK_TTL_MS = 30 * 60 * 1000;
+const PENDING_GOOGLE_CREDENTIAL_TTL_MS = 5 * 60 * 1000;
 
 function isLocalPreview() {
     return ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
@@ -226,6 +230,32 @@ function rememberPendingGoogleLink(email) {
     }
 }
 
+function clearPendingGoogleCredential() {
+    pendingGoogleCredential = '';
+    pendingGoogleCredentialEmail = '';
+    pendingGoogleCredentialExpiresAt = 0;
+}
+
+function holdPendingGoogleCredential(credential, email) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (typeof credential !== 'string' || !credential || !normalizedEmail) {
+        clearPendingGoogleCredential();
+        return;
+    }
+    pendingGoogleCredential = credential;
+    pendingGoogleCredentialEmail = normalizedEmail;
+    pendingGoogleCredentialExpiresAt = Date.now() + PENDING_GOOGLE_CREDENTIAL_TTL_MS;
+}
+
+function matchingPendingGoogleCredential(email) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const matches = Boolean(pendingGoogleCredential)
+        && pendingGoogleCredentialEmail === normalizedEmail
+        && pendingGoogleCredentialExpiresAt > Date.now();
+    if (!matches) clearPendingGoogleCredential();
+    return matches ? pendingGoogleCredential : '';
+}
+
 function consumePendingGoogleLink(signedInEmail) {
     const normalizedEmail = String(signedInEmail || '').trim().toLowerCase();
     let pending = Boolean(pendingGoogleLinkEmail)
@@ -377,18 +407,31 @@ async function submitSignin(event) {
     }
 
     const button = event.submitter;
+    const googleCredential = matchingPendingGoogleCredential(email);
     setButtonBusy(button, true, 'Signing in...');
     try {
-        const data = await requestJson('/api/login/email', {
+        const data = await requestJson(googleCredential ? '/api/login/google' : '/api/login/email', {
             method: 'POST',
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify(googleCredential
+                ? { credential: googleCredential, currentPassword: password }
+                : { email, password })
         });
         const confirmedUser = await confirmBrowserSession(data.user);
         setVerificationResend('');
+        const pendingLinkIntent = consumePendingGoogleLink(email);
+        clearPendingGoogleCredential();
+        document.getElementById('signin-password').value = '';
         updateSharedNavUI(confirmedUser);
         updateAuthPage(confirmedUser);
-        showStatus('Signed in successfully.');
-        if (consumePendingGoogleLink(email)) {
+        showStatus(googleCredential ? 'Google is connected and you are signed in.' : 'Signed in successfully.');
+        if (googleCredential) {
+            showOutcome({
+                title: 'Google sign-in is ready',
+                message: 'Your password confirmed this account and Google is now connected. Future Google sign-ins will open it directly.',
+                buttonText: 'Continue',
+                action: 'home'
+            });
+        } else if (pendingLinkIntent) {
             showOutcome({
                 title: 'Signed in securely',
                 message: 'Your password confirmed this account. Continue to Profile & Settings to connect Google explicitly.',
@@ -398,7 +441,13 @@ async function submitSignin(event) {
             });
         }
     } catch (error) {
-        if (error.verificationRequired || error.code === 'email_verification_required') {
+        if (googleCredential && error.code !== 'reauthentication_failed') {
+            clearPendingGoogleCredential();
+        }
+        if (googleCredential && error.code === 'reauthentication_failed') {
+            showFieldError('signin-password-error', 'That password was not accepted. Try again or reset it.');
+            document.getElementById('signin-password')?.focus();
+        } else if (error.verificationRequired || error.code === 'email_verification_required') {
             setVerificationResend(email);
             showOutcome({
                 title: 'Verify your email',
@@ -615,15 +664,16 @@ async function handleCredentialResponse(response) {
         if (error.code === 'account_link_required') {
             setVerificationResend('');
             pendingGoogleLinkEmail = error.recoveryEmail;
+            holdPendingGoogleCredential(response?.credential, error.recoveryEmail);
             rememberPendingGoogleLink(error.recoveryEmail);
             if (error.recoveryEmail) {
                 document.getElementById('signin-email').value = error.recoveryEmail;
                 document.getElementById('password-reset-email').value = error.recoveryEmail;
             }
             showOutcome({
-                title: 'Sign in before linking Google',
-                message: 'This Google email already belongs to a password account. Sign in—or reset its password—then connect Google from Profile & Settings. We never link accounts from an email match alone.',
-                buttonText: 'Sign in with password',
+                title: 'Confirm this account once',
+                message: 'Google verified your email. Enter your existing Fragrance Collect password once and we will connect Google while signing you in.',
+                buttonText: 'Enter password',
                 action: 'signin',
                 tone: 'notice',
                 secondaryText: 'Reset password',
@@ -715,6 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('password-reset-request-form')?.addEventListener('submit', submitResetRequest);
     document.getElementById('password-reset-form')?.addEventListener('submit', submitNewPassword);
     document.getElementById('forgot-password-button')?.addEventListener('click', () => {
+        clearPendingGoogleCredential();
         document.getElementById('password-reset-email').value = document.getElementById('signin-email').value;
         showResetDialog('request');
     });
@@ -731,12 +782,19 @@ document.addEventListener('DOMContentLoaded', () => {
     authUI.successModal?.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
         event.preventDefault();
+        clearPendingGoogleCredential();
         authUI.successModal.close();
     });
     authUI.successModal?.addEventListener('click', (event) => {
-        if (event.target === authUI.successModal) authUI.successModal.close();
+        if (event.target === authUI.successModal) {
+            clearPendingGoogleCredential();
+            authUI.successModal.close();
+        }
     });
-    document.getElementById('success-modal-close')?.addEventListener('click', () => authUI.successModal.close());
+    document.getElementById('success-modal-close')?.addEventListener('click', () => {
+        clearPendingGoogleCredential();
+        authUI.successModal.close();
+    });
     document.getElementById('logout-button')?.addEventListener('click', handleSharedLogout);
     document.getElementById('auth-home-button')?.addEventListener('click', () => window.location.assign('/'));
     authUI.successButton?.addEventListener('click', () => {
@@ -753,10 +811,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pendingVerificationEmail) {
             document.getElementById('signin-email').value = pendingVerificationEmail;
         }
-        document.getElementById('signin-email')?.focus();
+        document.getElementById(pendingGoogleCredential ? 'signin-password' : 'signin-email')?.focus();
     });
     authUI.successSecondary?.addEventListener('click', () => {
         if (outcomeSecondaryAction !== 'reset') return;
+        clearPendingGoogleCredential();
         authUI.successModal.close();
         const email = pendingGoogleLinkEmail || document.getElementById('signin-email').value;
         document.getElementById('password-reset-email').value = email;
@@ -780,6 +839,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (verifyToken) verifyEmailAddress();
     else startGoogleIdentity();
 });
+
+window.addEventListener('pagehide', clearPendingGoogleCredential);
 
 window.addEventListener('resize', () => {
     window.clearTimeout(googleRenderTimer);
