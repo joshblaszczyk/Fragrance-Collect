@@ -66,8 +66,15 @@ for (const path of htmlPaths) {
     failures.push(`${path}: GitHub Pages did not return HTML`);
   }
   const html = await response.text();
-  if (!/<meta\s+name=["']referrer["']\s+content=["']no-referrer["']/i.test(html)) {
-    failures.push(`${path}: missing document-level no-referrer policy`);
+  const expectedReferrerPolicy = ['/auth.html', '/account.html'].includes(path)
+    ? 'strict-origin-when-cross-origin'
+    : 'no-referrer';
+  const referrerPattern = new RegExp(
+    `<meta\\s+name=["']referrer["']\\s+content=["']${expectedReferrerPolicy}["']`,
+    'i'
+  );
+  if (!referrerPattern.test(html)) {
+    failures.push(`${path}: missing document-level ${expectedReferrerPolicy} policy`);
   }
   validateDocumentCsp(path, html);
 }

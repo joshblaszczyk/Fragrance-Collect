@@ -20,8 +20,14 @@ const KEY_CACHE_TTL = 3600 * 1000; // 1 hour in milliseconds
 const GOOGLE_JWKS_TIMEOUT_MS = 8 * 1000;
 
 const PASSWORD_HASH_VERSION = 'pbkdf2-sha512-v1';
-const PASSWORD_HASH_ITERATIONS = 240000;
-const DUMMY_PASSWORD_HASH = `${PASSWORD_HASH_VERSION}$${PASSWORD_HASH_ITERATIONS}$00112233445566778899aabbccddeeff$5a15ef1cd61b08b55e52569f3619f8ff68e5d2c4155d7fc04e69af8b788031c8e833c76a82135b98e396d4388ac539d0f356a79d402d101ece354f70c10e2442`;
+// Cloudflare Workers' Web Crypto runtime rejects PBKDF2 iteration counts above
+// 100,000. Use the platform maximum with a fresh 128-bit salt for every hash.
+const PASSWORD_HASH_ITERATIONS = 100000;
+const DUMMY_PASSWORD_HASH = `${PASSWORD_HASH_VERSION}$${PASSWORD_HASH_ITERATIONS}$00112233445566778899aabbccddeeff$6a606023206608a90614c062e550b7feadb4daaf5d55f50e2f1dc994020bf5765beae64a2aa9aef2be624f8f742ea70cd007c140a572d49d320021b2ebf5ab1a`;
+const DUMMY_PASSWORD_SALT = new Uint8Array([
+  0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+  0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+]);
 const LEGACY_PBKDF2_ITERATIONS = 100000;
 const MAX_PASSWORD_CHARACTERS = 200;
 const MAX_PASSWORD_BYTES = 256;
@@ -536,23 +542,29 @@ async function verifyPasswordPBKDF2(password, storedHash) {
 }
 
 async function verifyPasswordRecord(password, storedHash) {
-    if (typeof password !== 'string' || typeof storedHash !== 'string') return { valid: false, needsRehash: false };
+    if (typeof password !== 'string') return { valid: false, needsRehash: false };
     if (password.length > MAX_PASSWORD_CHARACTERS || new TextEncoder().encode(password).byteLength > MAX_PASSWORD_BYTES) {
       return { valid: false, needsRehash: false };
     }
+    if (typeof storedHash !== 'string') return rejectPasswordWithDummyKdf(password);
 
     const versioned = storedHash.split('$');
     if (versioned.length === 4 && versioned[0] === PASSWORD_HASH_VERSION) {
-      const iterations = Number.parseInt(versioned[1], 10);
+      const iterationText = versioned[1];
+      const iterations = Number.parseInt(iterationText, 10);
       const salt = hexToBytes(versioned[2]);
       const originalHash = versioned[3];
-      if (!Number.isInteger(iterations) || iterations < 100000 || iterations > 1000000 || !salt || !/^[a-f0-9]{128}$/i.test(originalHash)) {
-        return { valid: false, needsRehash: false };
+      if (iterationText !== String(PASSWORD_HASH_ITERATIONS)
+        || iterations !== PASSWORD_HASH_ITERATIONS
+        || !/^[a-f0-9]{32}$/i.test(versioned[2])
+        || !salt
+        || !/^[a-f0-9]{128}$/i.test(originalHash)) {
+        return rejectPasswordWithDummyKdf(password);
       }
       const calculated = await derivePasswordHash(password, salt, iterations);
       return {
         valid: compareHashes(calculated, originalHash.toLowerCase()),
-        needsRehash: iterations < PASSWORD_HASH_ITERATIONS
+        needsRehash: false
       };
     }
 
@@ -563,6 +575,11 @@ async function verifyPasswordRecord(password, storedHash) {
       return { valid: compareHashes(calculated, legacyPBKDF2[2].toLowerCase()), needsRehash: true };
     }
 
+    return rejectPasswordWithDummyKdf(password);
+}
+
+async function rejectPasswordWithDummyKdf(password) {
+    await derivePasswordHash(password, DUMMY_PASSWORD_SALT, PASSWORD_HASH_ITERATIONS);
     return { valid: false, needsRehash: false };
 }
 
@@ -1483,6 +1500,7 @@ async function handleResetPassword(request, env) {
         return jsonResponse({ error: 'Too many reset attempts. Please try again later.' }, 429, headers);
     }
 
+    let resetStage = 'read-request';
     try {
         const body = await readJsonBody(request);
         const token = typeof body.token === 'string' ? body.token.trim() : '';
@@ -1514,55 +1532,86 @@ async function handleResetPassword(request, env) {
             return jsonResponse({ error: 'This password reset link is invalid or expired.' }, 400, headers);
         }
 
-        // Complete the intentionally expensive password work before claiming
-        // every active sibling. The presented digest is rechecked inside this
-        // single write, making concurrent reset links first-writer-wins.
+        // Complete the intentionally expensive password work before the
+        // transaction. The batch then claims every sibling and performs every
+        // account mutation atomically, so a failed mutation cannot burn a
+        // valid reset link. The digest is rechecked inside the claim, making
+        // concurrent reset links first-writer-wins.
+        resetStage = 'derive-password';
         const passwordHash = await hashPasswordPBKDF2(password);
         const claimTime = new Date().toISOString();
-        const claimed = await env.DB.prepare(`
-            UPDATE password_reset_tokens
-            SET used_at = ?
-            WHERE user_id = (
-              SELECT presented.user_id
-              FROM password_reset_tokens AS presented
-              WHERE presented.token_hash = ?
-                AND presented.used_at IS NULL
-                AND datetime(presented.expires_at) > datetime(?)
-            )
-              AND used_at IS NULL
-              AND datetime(expires_at) > datetime(?)
-        `).bind(claimTime, tokenHash, claimTime, claimTime).run();
-        if (Number(claimed.meta?.changes || 0) < 1) {
-            return jsonResponse({ error: 'This password reset link is invalid or expired.' }, 400, headers);
-        }
-
-        await env.DB.batch([
+        resetStage = 'commit-reset';
+        const resetResults = await env.DB.batch([
+            env.DB.prepare(`
+              UPDATE password_reset_tokens
+              SET used_at = ?
+              WHERE user_id = (
+                SELECT presented.user_id
+                FROM password_reset_tokens AS presented
+                WHERE presented.token_hash = ?
+                  AND presented.used_at IS NULL
+                  AND datetime(presented.expires_at) > datetime(?)
+              )
+            `).bind(claimTime, tokenHash, claimTime),
             env.DB.prepare(`
               UPDATE users
               SET password_hash = ?, email_verified_at = COALESCE(email_verified_at, ?), updated_at = CURRENT_TIMESTAMP
-              WHERE id = ?
-            `).bind(passwordHash, claimTime, record.user_id),
+              WHERE id = ? AND EXISTS (
+                SELECT 1 FROM password_reset_tokens AS claimed
+                WHERE claimed.token_hash = ? AND claimed.user_id = ? AND claimed.used_at = ?
+              )
+            `).bind(passwordHash, claimTime, record.user_id, tokenHash, record.user_id, claimTime),
             env.DB.prepare(`
               INSERT INTO user_identities (
                 id, user_id, provider, provider_subject, email, email_verified_at, updated_at
-              ) VALUES (?, ?, 'password', ?, ?, ?, CURRENT_TIMESTAMP)
+              )
+              SELECT ?, ?, 'password', ?, ?, ?, CURRENT_TIMESTAMP
+              FROM password_reset_tokens AS claimed
+              WHERE claimed.token_hash = ? AND claimed.user_id = ? AND claimed.used_at = ?
               ON CONFLICT(user_id, provider) DO UPDATE SET
                 provider_subject = excluded.provider_subject,
                 email = excluded.email,
                 email_verified_at = COALESCE(user_identities.email_verified_at, excluded.email_verified_at),
                 updated_at = CURRENT_TIMESTAMP
-            `).bind(crypto.randomUUID(), record.user_id, record.email, record.email, claimTime),
-            env.DB.prepare('DELETE FROM user_sessions WHERE user_id = ?').bind(record.user_id),
-            env.DB.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').bind(record.user_id),
-            env.DB.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(record.user_id)
+            `).bind(
+              crypto.randomUUID(), record.user_id, record.email, record.email, claimTime,
+              tokenHash, record.user_id, claimTime
+            ),
+            env.DB.prepare(`
+              DELETE FROM user_sessions
+              WHERE user_id = ? AND EXISTS (
+                SELECT 1 FROM password_reset_tokens AS claimed
+                WHERE claimed.token_hash = ? AND claimed.user_id = ? AND claimed.used_at = ?
+              )
+            `).bind(record.user_id, tokenHash, record.user_id, claimTime),
+            env.DB.prepare(`
+              DELETE FROM email_verification_tokens
+              WHERE user_id = ? AND EXISTS (
+                SELECT 1 FROM password_reset_tokens AS claimed
+                WHERE claimed.token_hash = ? AND claimed.user_id = ? AND claimed.used_at = ?
+              )
+            `).bind(record.user_id, tokenHash, record.user_id, claimTime),
+            env.DB.prepare(`
+              DELETE FROM password_reset_tokens
+              WHERE user_id = ? AND used_at = ?
+            `).bind(record.user_id, claimTime)
         ]);
+        if (Number(resetResults[0]?.meta?.changes || 0) < 1) {
+            return jsonResponse({ error: 'This password reset link is invalid or expired.' }, 400, headers);
+        }
+        if (Number(resetResults[1]?.meta?.changes || 0) !== 1) {
+            throw new Error('Password reset account update invariant failed.');
+        }
 
         setSessionCookie(headers, request, env, '', -1);
         return jsonResponse({ success: true, message: 'Your password has been reset. Sign in with your new password.' }, 200, headers);
     } catch (error) {
         const bodyResponse = bodyErrorResponse(error, headers);
         if (bodyResponse) return bodyResponse;
-        console.error('Password reset failed:');
+        console.error('Password reset failed.', {
+          stage: resetStage,
+          name: String(error?.name || 'Error').slice(0, 80)
+        });
         return jsonResponse({ error: 'Unable to reset the password.' }, 500, headers);
     }
 }
@@ -1731,7 +1780,8 @@ async function handleGoogleLogin(request, env) {
             }
             return jsonResponse({
               error: 'An account already uses this email. Sign in first, then explicitly link Google in account settings.',
-              code: 'account_link_required'
+              code: 'account_link_required',
+              recoveryEmail: email
             }, 409, headers);
           }
           userId = crypto.randomUUID();

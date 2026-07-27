@@ -76,8 +76,8 @@ for (const path of ['/auth', '/account', '/admin']) {
     failures.push(`${path} must use a private, no-store cache policy at its canonical URL`);
   }
 }
-if (globalRule?.headers.get('referrer-policy') !== 'no-referrer') {
-  failures.push('global Referrer-Policy must be no-referrer so auth credentials cannot leak');
+if (globalRule?.headers.get('referrer-policy') !== 'strict-origin-when-cross-origin') {
+  failures.push('global Referrer-Policy must expose only the origin to cross-origin identity providers');
 }
 
 const workersRule = rules.find((rule) => /\.workers\.dev\/\*$/.test(rule.pattern));

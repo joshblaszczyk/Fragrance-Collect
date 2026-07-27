@@ -4690,6 +4690,7 @@ button.forgot-password {
 .auth-dialog {
     width: min(calc(100% - 32px), 520px);
     max-height: calc(100svh - 32px);
+    margin: auto;
     padding: 0;
     border: 1px solid rgba(201, 166, 70, 0.55);
     border-radius: 14px;
@@ -4738,7 +4739,16 @@ button.forgot-password {
 .auth-dialog__status {
     min-height: 1.6em;
     margin: 18px 0 0 !important;
-    color: var(--warm-white) !important;
+    color: rgba(245, 240, 230, 0.82) !important;
+    line-height: 1.5;
+}
+
+.auth-dialog__status.is-error {
+    color: #ffb4b4 !important;
+}
+
+.auth-dialog__status.is-success {
+    color: var(--fc-gold-soft, #ead7a2) !important;
 }
 
 .menu-link {

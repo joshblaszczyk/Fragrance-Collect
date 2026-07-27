@@ -12,7 +12,7 @@ const workerSource = readFileSync(new URL('weathered-mud-6ed5/src/integrated-wor
 const wranglerSource = readFileSync(new URL('weathered-mud-6ed5/wrangler.toml', root), 'utf8');
 const migrationDirectory = new URL('weathered-mud-6ed5/migrations/', root);
 const deployedApiOrigin = 'https://weathered-mud-6ed5.joshuablaszczyk.workers.dev';
-const CURRENT_PASSWORD_TEST_VECTOR = 'pbkdf2-sha512-v1$240000$ffeeddccbbaa99887766554433221100$f373b5c7df3ba8b813a3dd90f07487e465aec91cfe8dd882d944877c48c52d5e86a74ce69d2d237e2d5b52120195f5088eddb840e309ccce3a44983719ce309f';
+const CURRENT_PASSWORD_TEST_VECTOR = 'pbkdf2-sha512-v1$100000$ffeeddccbbaa99887766554433221100$ec8f31a9550656e0ecc7596892cae63f876dbded0f0888c47e712e143aeb49019a5dd4a77c783f6e549888bf3699b8ba81cda9b74d4dba9b227a3bc0d139851a';
 const LEGACY_PBKDF2_TEST_VECTOR = '00112233445566778899aabbccddeeff:e9584c5248ee21cec2ff4b97c9e9fce22eab07a51637edb1a84ae0b136c9dfc29af8da9d5451779665e790a1f826a4a29d05712f7a2a625d198d8a6a5e1443c2';
 
 class D1StatementStub {
@@ -324,7 +324,7 @@ test('password signup requires mailbox proof, normalizes email, bounds sessions,
     const storedUser = fixture.database.prepare('SELECT id, email, email_verified_at, password_hash FROM users').get();
     assert.equal(storedUser.email, 'case.owner@example.com');
     assert.equal(storedUser.email_verified_at, null);
-    assert.match(storedUser.password_hash, /^pbkdf2-sha512-v1\$240000\$/);
+    assert.match(storedUser.password_hash, /^pbkdf2-sha512-v1\$100000\$/);
 
     const unverifiedLogin = await integratedWorker.fetch(localJsonRequest('/api/login/email', 'POST', {
       email: 'CASE.OWNER@example.com', password
@@ -457,7 +457,7 @@ test('provider-only deletion requests fresh Google reauthentication and export f
   }
 });
 
-test('legacy salted PBKDF2 login lazily upgrades to the versioned 240k PBKDF2 record', async () => {
+test('legacy salted PBKDF2 login lazily upgrades to the versioned platform-compatible record', async () => {
   const fixture = createFixture();
   try {
     const password = 'Legacy9!Password';
@@ -477,8 +477,49 @@ test('legacy salted PBKDF2 login lazily upgrades to the versioned 240k PBKDF2 re
     assert.equal(response.status, 200, await response.text());
     assert.match(
       fixture.database.prepare('SELECT password_hash FROM users WHERE id = ?').get('legacy-login').password_hash,
-      /^pbkdf2-sha512-v1\$240000\$/
+      /^pbkdf2-sha512-v1\$100000\$/
     );
+  } finally {
+    fixture.database.close();
+  }
+});
+
+test('password verification stays within the Cloudflare PBKDF2 ceiling and fails closed on unsupported records', async () => {
+  const fixture = createFixture();
+  try {
+    const verifiedAt = new Date().toISOString();
+    fixture.database.prepare(`
+      INSERT INTO users (id, email, name, password_hash, email_verified_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      'unsupported-password',
+      'unsupported.password@example.com',
+      'Unsupported Password',
+      'pbkdf2-sha512-v1$240000$00112233445566778899aabbccddeeff$5a15ef1cd61b08b55e52569f3619f8ff68e5d2c4155d7fc04e69af8b788031c8e833c76a82135b98e396d4388ac539d0f356a79d402d101ece354f70c10e2442',
+      verifiedAt
+    );
+    fixture.database.prepare(`
+      INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
+      VALUES (?, ?, 'password', ?, ?, ?)
+    `).run(
+      'unsupported-password-identity',
+      'unsupported-password',
+      'unsupported.password@example.com',
+      'unsupported.password@example.com',
+      verifiedAt
+    );
+
+    const unsupported = await integratedWorker.fetch(localJsonRequest('/api/login/email', 'POST', {
+      email: 'unsupported.password@example.com',
+      password: 'Correct9!Pass'
+    }), fixture.env, {});
+    assert.equal(unsupported.status, 401, await unsupported.clone().text());
+
+    const absent = await integratedWorker.fetch(localJsonRequest('/api/login/email', 'POST', {
+      email: 'absent.password@example.com',
+      password: 'Correct9!Pass'
+    }), fixture.env, {});
+    assert.equal(absent.status, 401, await absent.clone().text());
   } finally {
     fixture.database.close();
   }
@@ -542,6 +583,10 @@ test('password recovery sends a fragment credential, consumes it once, and rotat
       password: newPassword
     }), fixture.env, {});
     assert.equal(reset.status, 200, await reset.clone().text());
+    assert.match(
+      fixture.database.prepare('SELECT password_hash FROM users WHERE id = ?').get('reset-owner').password_hash,
+      /^pbkdf2-sha512-v1\$100000\$/
+    );
     assert.equal(fixture.database.prepare(
       'SELECT COUNT(*) AS total FROM user_sessions WHERE user_id = ?'
     ).get('reset-owner').total, 0, 'password reset must revoke every prior session');
@@ -557,6 +602,51 @@ test('password recovery sends a fragment credential, consumes it once, and rotat
     assert.equal(login.status, 200, await login.clone().text());
   } finally {
     globalThis.fetch = originalFetch;
+    fixture.database.close();
+  }
+});
+
+test('a failed password-reset transaction preserves the link and original account state', async () => {
+  const fixture = createFixture();
+  const token = 't'.repeat(48);
+  const oldHash = CURRENT_PASSWORD_TEST_VECTOR;
+  const verifiedAt = new Date().toISOString();
+  try {
+    fixture.database.prepare(`
+      INSERT INTO users (id, email, name, password_hash, email_verified_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run('reset-rollback', 'reset.rollback@example.com', 'Reset Rollback', oldHash, verifiedAt);
+    fixture.database.prepare(`
+      INSERT INTO user_identities (id, user_id, provider, provider_subject, email, email_verified_at)
+      VALUES (?, ?, 'password', ?, ?, ?)
+    `).run(
+      'reset-rollback-identity', 'reset-rollback',
+      'reset.rollback@example.com', 'reset.rollback@example.com', verifiedAt
+    );
+    fixture.database.prepare(`
+      INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      'reset-rollback-token', 'reset-rollback', opaqueTokenDigest(token),
+      new Date(Date.now() + 20 * 60 * 1000).toISOString(), verifiedAt
+    );
+
+    // Force a statement after the claim and password update to fail. D1 batch
+    // semantics must roll the whole reset back, including the token claim.
+    fixture.database.exec('DROP TABLE user_sessions');
+    const response = await integratedWorker.fetch(localJsonRequest('/api/password/reset', 'POST', {
+      token,
+      password: 'Replacement9!Pass'
+    }, { ip: '192.0.2.176' }), fixture.env, {});
+    assert.equal(response.status, 500, await response.clone().text());
+    assert.equal(fixture.database.prepare(`
+      SELECT used_at FROM password_reset_tokens WHERE token_hash = ?
+    `).get(opaqueTokenDigest(token)).used_at, null);
+    assert.equal(
+      fixture.database.prepare('SELECT password_hash FROM users WHERE id = ?').get('reset-rollback').password_hash,
+      oldHash
+    );
+  } finally {
     fixture.database.close();
   }
 });
@@ -1655,6 +1745,12 @@ test('source-level guards retain sub-keyed ownership, timing equalization, bound
   assert.doesNotMatch(workerSource, /Number\(result\[1\]\?\.meta\?\.changes \|\| 0\) !== 1/);
   assert.match(workerSource, /const passwordHash = user\?\.password_hash \|\| DUMMY_PASSWORD_HASH/);
   assert.match(workerSource, /Compatibility with the previous `salt:hash` PBKDF2-SHA512 format/);
+  assert.match(workerSource, /const PASSWORD_HASH_ITERATIONS = 100000/);
+  assert.match(workerSource, /iterations !== PASSWORD_HASH_ITERATIONS/);
+  assert.match(workerSource, /iterationText !== String\(PASSWORD_HASH_ITERATIONS\)/);
+  assert.match(workerSource, /\/\^\[a-f0-9\]\{32\}\$\/i\.test\(versioned\[2\]\)/);
+  assert.match(workerSource, /return rejectPasswordWithDummyKdf\(password\)/);
+  assert.match(workerSource, /const resetResults = await env\.DB\.batch\(\[/);
   assert.doesNotMatch(workerSource, /historical unsalted SHA-512/);
   assert.doesNotMatch(workerSource, /sha512\(password\)/);
   assert.ok(

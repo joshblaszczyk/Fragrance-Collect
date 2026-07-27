@@ -19,7 +19,9 @@ const authUI = {
     resetStatus: document.getElementById('password-reset-status'),
     successTitle: document.getElementById('success-modal-title'),
     successMessage: document.getElementById('success-modal-message'),
-    successButton: document.getElementById('continue-to-home-btn')
+    successButton: document.getElementById('continue-to-home-btn'),
+    successSecondary: document.getElementById('success-modal-secondary'),
+    successIcon: document.querySelector('.success-icon i')
 };
 
 let statusTimer;
@@ -27,11 +29,15 @@ let resetToken = '';
 let verifyToken = '';
 let pendingVerificationEmail = '';
 let outcomeAction = 'home';
+let outcomeSecondaryAction = '';
+let pendingGoogleLinkEmail = '';
 let googleIdentityInitialized = false;
 let googleRenderAttempts = 0;
 let googleRenderTimer;
 let googleIdentityScriptPromise;
 let authCredentialHandoffCleared = true;
+const PENDING_GOOGLE_LINK_KEY = 'fragrance:pending-google-link';
+const PENDING_GOOGLE_LINK_TTL_MS = 30 * 60 * 1000;
 
 function isLocalPreview() {
     return ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
@@ -45,7 +51,7 @@ function loadGoogleIdentityScript() {
         const script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
         script.async = true;
-        script.referrerPolicy = 'no-referrer';
+        script.referrerPolicy = 'strict-origin-when-cross-origin';
         script.addEventListener('load', resolve, { once: true });
         script.addEventListener('error', () => reject(new Error('Google sign-in is unavailable.')), { once: true });
         document.head.appendChild(script);
@@ -53,11 +59,29 @@ function loadGoogleIdentityScript() {
     return googleIdentityScriptPromise;
 }
 
+function startGoogleIdentity() {
+    if (resetToken || verifyToken) return;
+    if (!authCredentialHandoffCleared) {
+        showStatus('Google sign-in is temporarily unavailable. You can still use email and password.', true);
+        return;
+    }
+    loadGoogleIdentityScript()
+        .then(() => {
+            googleRenderAttempts = 0;
+            renderGoogleButtons();
+        })
+        .catch((error) => {
+            // Google sign-in is optional; password sign-in remains usable.
+            showStatus(error.message, true);
+        });
+}
+
 function googleButtonWidth(host) {
     return Math.min(400, Math.max(200, Math.floor(host.getBoundingClientRect().width || 320)));
 }
 
 function renderGoogleButtons() {
+    if (resetToken || verifyToken) return;
     if (isLocalPreview()) {
         document.querySelectorAll('.google-button-host').forEach((host) => {
             if (host.firstElementChild?.classList.contains('local-google-disabled')) return;
@@ -128,6 +152,7 @@ async function requestJson(path, options) {
             ? 'Password reset is temporarily unavailable. Please contact support@fragrancecollect.com.'
             : 'The request could not be completed.';
         const error = new Error(data.error || fallback);
+        error.status = response.status;
         error.code = data.code || '';
         error.verificationRequired = Boolean(data.verificationRequired);
         error.recoveryEmail = typeof data.recoveryEmail === 'string' ? data.recoveryEmail : '';
@@ -177,11 +202,70 @@ function showStatus(message, isError = false) {
     }, 7000);
 }
 
-function showOutcome({ title, message, buttonText, action = 'home' }) {
+function setResetStatus(message = '', isError = false) {
+    if (!authUI.resetStatus) return;
+    authUI.resetStatus.textContent = message;
+    authUI.resetStatus.classList.toggle('is-error', Boolean(message) && isError);
+    authUI.resetStatus.classList.toggle('is-success', Boolean(message) && !isError);
+    authUI.resetStatus.setAttribute('role', isError ? 'alert' : 'status');
+    if (message) {
+        window.requestAnimationFrame(() => authUI.resetStatus.scrollIntoView({ block: 'nearest' }));
+    }
+}
+
+function rememberPendingGoogleLink(email) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return;
+    try {
+        window.sessionStorage.setItem(PENDING_GOOGLE_LINK_KEY, JSON.stringify({
+            email: normalizedEmail,
+            expiresAt: Date.now() + PENDING_GOOGLE_LINK_TTL_MS
+        }));
+    } catch {
+        // The in-memory recovery path remains available when storage is blocked.
+    }
+}
+
+function consumePendingGoogleLink(signedInEmail) {
+    const normalizedEmail = String(signedInEmail || '').trim().toLowerCase();
+    let pending = Boolean(pendingGoogleLinkEmail)
+        && pendingGoogleLinkEmail.toLowerCase() === normalizedEmail;
+    try {
+        const rawIntent = window.sessionStorage.getItem(PENDING_GOOGLE_LINK_KEY);
+        window.sessionStorage.removeItem(PENDING_GOOGLE_LINK_KEY);
+        const intent = rawIntent ? JSON.parse(rawIntent) : null;
+        pending = pending || Boolean(
+            intent
+            && intent.email === normalizedEmail
+            && Number(intent.expiresAt || 0) > Date.now()
+        );
+    } catch {
+        // Storage access is optional.
+    }
+    pendingGoogleLinkEmail = '';
+    return pending;
+}
+
+function showOutcome({
+    title,
+    message,
+    buttonText,
+    action = 'home',
+    tone = 'success',
+    secondaryText = '',
+    secondaryAction = ''
+}) {
     authUI.successTitle.textContent = title;
     authUI.successMessage.textContent = message;
     authUI.successButton.textContent = buttonText;
+    authUI.successModal.dataset.tone = tone;
+    if (authUI.successIcon) {
+        authUI.successIcon.className = tone === 'notice' ? 'fas fa-link' : 'fas fa-check';
+    }
+    authUI.successSecondary.textContent = secondaryText;
+    authUI.successSecondary.hidden = !secondaryText;
     outcomeAction = action;
+    outcomeSecondaryAction = secondaryAction;
     if (!authUI.successModal.open) authUI.successModal.showModal();
     authUI.successModal.classList.add('show');
     authUI.successButton.focus();
@@ -265,7 +349,7 @@ function switchTab(tabName, updateUrl = true) {
         url.searchParams.set('tab', safeTab);
         window.history.replaceState({}, '', url);
     }
-    window.requestAnimationFrame(renderGoogleButtons);
+    if (!resetToken && !verifyToken) window.requestAnimationFrame(renderGoogleButtons);
 }
 
 function showResetDialog(mode) {
@@ -273,7 +357,7 @@ function showResetDialog(mode) {
     authUI.resetRequestView.hidden = isNewPassword;
     authUI.resetNewView.hidden = !isNewPassword;
     authUI.resetDialog.setAttribute('aria-labelledby', isNewPassword ? 'password-reset-new-title' : 'password-reset-title');
-    authUI.resetStatus.textContent = '';
+    setResetStatus();
     if (!authUI.resetDialog.open) authUI.resetDialog.showModal();
     window.requestAnimationFrame(() => {
         document.getElementById(isNewPassword ? 'password-reset-new' : 'password-reset-email')?.focus();
@@ -304,6 +388,15 @@ async function submitSignin(event) {
         updateSharedNavUI(confirmedUser);
         updateAuthPage(confirmedUser);
         showStatus('Signed in successfully.');
+        if (consumePendingGoogleLink(email)) {
+            showOutcome({
+                title: 'Signed in securely',
+                message: 'Your password confirmed this account. Continue to Profile & Settings to connect Google explicitly.',
+                buttonText: 'Connect Google',
+                action: 'account-link',
+                tone: 'notice'
+            });
+        }
     } catch (error) {
         if (error.verificationRequired || error.code === 'email_verification_required') {
             setVerificationResend(email);
@@ -383,16 +476,16 @@ async function submitResetRequest(event) {
     const email = document.getElementById('password-reset-email').value.trim();
     const button = event.submitter;
     setButtonBusy(button, true, 'Sending...');
-    authUI.resetStatus.textContent = '';
+    setResetStatus();
     try {
         const data = await requestJson('/api/password/forgot', {
             method: 'POST',
             body: JSON.stringify({ email })
         });
-        authUI.resetStatus.textContent = data.message;
+        setResetStatus(data.message || 'If the address is eligible, a reset link is on its way.');
         form.reset();
     } catch (error) {
-        authUI.resetStatus.textContent = error.message;
+        setResetStatus(error.message, true);
     } finally {
         setButtonBusy(button, false);
     }
@@ -419,13 +512,20 @@ async function submitNewPassword(event) {
     event.preventDefault();
     const password = document.getElementById('password-reset-new').value;
     const confirmation = document.getElementById('password-reset-confirm').value;
+    setResetStatus();
+    document.getElementById('password-reset-new')?.removeAttribute('aria-invalid');
+    document.getElementById('password-reset-confirm')?.removeAttribute('aria-invalid');
     const errors = passwordErrors(password);
     if (errors.length) {
-        authUI.resetStatus.textContent = `Include ${errors.join(', ')}.`;
+        setResetStatus(`Include ${errors.join(', ')}.`, true);
+        document.getElementById('password-reset-new')?.setAttribute('aria-invalid', 'true');
+        document.getElementById('password-reset-new')?.focus();
         return;
     }
     if (password !== confirmation) {
-        authUI.resetStatus.textContent = 'Passwords do not match.';
+        setResetStatus('Passwords do not match.', true);
+        document.getElementById('password-reset-confirm')?.setAttribute('aria-invalid', 'true');
+        document.getElementById('password-reset-confirm')?.focus();
         return;
     }
 
@@ -436,7 +536,7 @@ async function submitNewPassword(event) {
             method: 'POST',
             body: JSON.stringify({ token: resetToken, password })
         });
-        authUI.resetStatus.textContent = data.message;
+        setResetStatus(data.message || 'Your password has been reset.');
         resetToken = '';
         // Resetting a password revokes every session, including a Google
         // session that may still be represented in this page's in-memory UI.
@@ -445,10 +545,17 @@ async function submitNewPassword(event) {
         window.setTimeout(() => {
             authUI.resetDialog.close();
             switchTab('signin', false);
+            startGoogleIdentity();
             document.getElementById('signin-email')?.focus();
         }, 1200);
     } catch (error) {
-        authUI.resetStatus.textContent = error.message;
+        const retryable = Number(error.status || 0) >= 500;
+        setResetStatus(
+            retryable
+                ? 'The server could not finish the reset. Retry; if the link is no longer valid, request a new one.'
+                : error.message,
+            true
+        );
     } finally {
         setButtonBusy(button, false);
     }
@@ -463,6 +570,7 @@ async function verifyEmailAddress() {
             body: JSON.stringify({ token: verifyToken })
         });
         verifyToken = '';
+        startGoogleIdentity();
         setVerificationResend('');
         if (data.user) {
             const confirmedUser = await confirmBrowserSession(data.user);
@@ -506,11 +614,20 @@ async function handleCredentialResponse(response) {
     } catch (error) {
         if (error.code === 'account_link_required') {
             setVerificationResend('');
+            pendingGoogleLinkEmail = error.recoveryEmail;
+            rememberPendingGoogleLink(error.recoveryEmail);
+            if (error.recoveryEmail) {
+                document.getElementById('signin-email').value = error.recoveryEmail;
+                document.getElementById('password-reset-email').value = error.recoveryEmail;
+            }
             showOutcome({
                 title: 'Sign in before linking Google',
-                message: 'This email already belongs to a Fragrance Collect account. Sign in with its password, then connect Google from Account Settings.',
-                buttonText: 'Continue to sign in',
-                action: 'signin'
+                message: 'This Google email already belongs to a password account. Sign in—or reset its password—then connect Google from Profile & Settings. We never link accounts from an email match alone.',
+                buttonText: 'Sign in with password',
+                action: 'signin',
+                tone: 'notice',
+                secondaryText: 'Reset password',
+                secondaryAction: 'reset'
             });
             return;
         }
@@ -578,22 +695,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-local-google-note]').forEach((note) => {
         note.hidden = !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
     });
-    if (authCredentialHandoffCleared) {
-        loadGoogleIdentityScript()
-            .then(() => {
-                googleRenderAttempts = 0;
-                renderGoogleButtons();
-            })
-            .catch((error) => {
-                // Google sign-in is optional; password sign-in remains usable.
-                showStatus(error.message, true);
-            });
-    } else {
-        // Never load a third-party auth script if a one-time credential cannot
-        // be removed from the page realm.
-        showStatus('Google sign-in is temporarily unavailable. You can still use email and password.', true);
-    }
-
     authUI.tabs.forEach((tab) => {
         tab.addEventListener('click', () => switchTab(tab.dataset.tab));
         tab.addEventListener('keydown', (event) => {
@@ -619,6 +720,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('resend-verification-button')?.addEventListener('click', resendVerificationEmail);
     document.getElementById('password-reset-close')?.addEventListener('click', () => authUI.resetDialog.close());
+    document.getElementById('password-reset-start-over')?.addEventListener('click', () => {
+        resetToken = '';
+        document.getElementById('password-reset-form')?.reset();
+        setResetStatus();
+        showResetDialog('request');
+        startGoogleIdentity();
+    });
     authUI.successModal?.addEventListener('close', () => authUI.successModal.classList.remove('show'));
     authUI.successModal?.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
@@ -628,6 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
     authUI.successModal?.addEventListener('click', (event) => {
         if (event.target === authUI.successModal) authUI.successModal.close();
     });
+    document.getElementById('success-modal-close')?.addEventListener('click', () => authUI.successModal.close());
     document.getElementById('logout-button')?.addEventListener('click', handleSharedLogout);
     document.getElementById('auth-home-button')?.addEventListener('click', () => window.location.assign('/'));
     authUI.successButton?.addEventListener('click', () => {
@@ -646,6 +755,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.getElementById('signin-email')?.focus();
     });
+    authUI.successSecondary?.addEventListener('click', () => {
+        if (outcomeSecondaryAction !== 'reset') return;
+        authUI.successModal.close();
+        const email = pendingGoogleLinkEmail || document.getElementById('signin-email').value;
+        document.getElementById('password-reset-email').value = email;
+        showResetDialog('request');
+    });
 
     document.querySelectorAll('.password-toggle').forEach((button) => {
         button.addEventListener('click', () => {
@@ -662,6 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('fragrance:auth-change', (event) => updateAuthPage(event.detail.user));
     if (resetToken) showResetDialog('reset');
     else if (verifyToken) verifyEmailAddress();
+    else startGoogleIdentity();
 });
 
 window.addEventListener('resize', () => {
