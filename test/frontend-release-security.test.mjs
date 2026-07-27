@@ -135,7 +135,7 @@ test('non-auth pages scrub credential-shaped URLs without exposing a global read
 
 test('auth flow strips secrets early and implements verification lifecycle', async () => {
   const [html, script] = await Promise.all([read('auth.html'), read('auth-script.js')]);
-  const referrerIndex = html.indexOf('<meta name="referrer" content="no-referrer">');
+  const referrerIndex = html.indexOf('<meta name="referrer" content="strict-origin-when-cross-origin">');
   assert.ok(referrerIndex >= 0);
   assert.doesNotMatch(html, /<script\b[^>]+accounts\.google\.com\/gsi\/client/);
   assert.match(html, /<script type="module" src="auth-script\.js"><\/script>/);
@@ -143,25 +143,54 @@ test('auth flow strips secrets early and implements verification lifecycle', asy
   assert.match(script, /verifyToken = consumeCredential\('verify_token'\)/);
   assert.match(script, /delete window\.consumeFragranceAuthCredential/);
   assert.match(script, /authCredentialHandoffCleared/);
-  assert.match(script, /if \(authCredentialHandoffCleared\)/);
+  assert.match(script, /if \(!authCredentialHandoffCleared\)/);
   assert.match(script, /function loadGoogleIdentityScript\(\)/);
-  assert.match(script, /script\.referrerPolicy = 'no-referrer'/);
+  assert.match(script, /script\.referrerPolicy = 'strict-origin-when-cross-origin'/);
   assert.match(script, /loadGoogleIdentityScript\(\)\s*\.then/);
+  assert.match(script, /if \(resetToken \|\| verifyToken\) return/);
   assert.match(script, /\/api\/signup\/verify/);
   assert.match(script, /\/api\/signup\/verification\/resend/);
   assert.match(script, /pendingVerification/);
   assert.match(script, /account_link_required/);
   assert.match(script, /legacy_verification_required/);
   assert.match(script, /identityLinkRequired/);
+  assert.match(html, /id="success-modal-secondary"/);
+  assert.match(html, /id="password-reset-start-over"/);
+  assert.match(script, /function setResetStatus\(/);
+  assert.match(script, /rememberPendingGoogleLink\(error\.recoveryEmail\)/);
+  assert.match(script, /intent\.email === normalizedEmail/);
 });
 
-test('every HTML entry point uses a document-level no-referrer fallback', async () => {
+test('Google Identity pages disclose only the origin while other pages retain no-referrer', async () => {
   const rootEntries = await readdir(new URL('..', import.meta.url));
   const htmlFiles = rootEntries.filter((file) => file.endsWith('.html'));
   for (const file of htmlFiles) {
     const html = await read(file);
-    assert.match(html, /<meta name="referrer" content="no-referrer">/, file);
+    const expected = ['auth.html', 'account.html'].includes(file)
+      ? 'strict-origin-when-cross-origin'
+      : 'no-referrer';
+    assert.match(html, new RegExp(`<meta name="referrer" content="${expected}">`), file);
   }
+  const account = await read('account.html');
+  assert.match(
+    account,
+    /<script[^>]+accounts\.google\.com\/gsi\/client[^>]+referrerpolicy="strict-origin-when-cross-origin"/
+  );
+});
+
+test('auth outcomes use compact dark dialogs with explicit recovery actions', async () => {
+  const [html, css, sharedCss, script] = await Promise.all([
+    read('auth.html'), read('auth-styles.css'), read('styles.css'), read('auth-script.js')
+  ]);
+  assert.match(css, /\.success-modal\s*\{[\s\S]*?width:\s*min\(calc\(100% - 32px\), 620px\)/);
+  assert.doesNotMatch(css, /\.success-modal\s*\{[^}]*height:\s*100%/s);
+  assert.match(css, /\.success-modal\[data-tone="notice"\]/);
+  assert.match(html, /id="success-modal-close"/);
+  assert.match(script, /secondaryAction:\s*'reset'/);
+  assert.match(script, /error\.status = response\.status/);
+  assert.match(script, /if the link is no longer valid, request a new one/);
+  assert.match(script, /resetStatus\.scrollIntoView\(\{ block: 'nearest' \}\)/);
+  assert.match(sharedCss, /\.auth-dialog\s*\{[^}]*margin:\s*auto/s);
 });
 
 test('API-capable pages allow only the exact deployed Worker in connect-src', async () => {
