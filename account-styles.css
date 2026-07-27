@@ -432,6 +432,23 @@ body {
     background: linear-gradient(90deg, var(--antique-gold), #e6c866);
 }
 
+/*
+ * Account navigation moves focus to the newly revealed heading so screen
+ * readers announce the section change. The global focus ring otherwise wraps
+ * the heading's full block width, which looks like a border around the panel.
+ * Keep that focus handoff and replace only its oversized visual treatment with
+ * a compact, high-contrast extension of the heading underline.
+ */
+.account-panel > h2:focus {
+    outline: none !important;
+}
+
+.account-panel > h2:focus-visible::after {
+    width: 72px;
+    height: 3px;
+    box-shadow: 0 0 0 3px rgba(201, 166, 70, 0.18);
+}
+
 /* Form Styles */
 .form-group {
     margin-bottom: 2rem;

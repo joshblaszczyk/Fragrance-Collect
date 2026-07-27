@@ -134,6 +134,7 @@ const mockScript = `
       status,
       headers: { 'Content-Type': 'application/json' }
     }));
+    window.__headerProductQueries = [];
     window.fetch = (input, options = {}) => {
       const url = String(input);
       if (url.includes('/api/status')) {
@@ -142,10 +143,14 @@ const mockScript = `
           ? json({ success: true, user: { id: 'smoke-header-user', name: 'Smoke User', email: 'smoke@example.com', hasPassword: true } })
           : json({ error: 'Not authenticated' }, 401);
       }
-      if (url.includes('/api/products')) return json({
-        products: [{ id: 'smoke-1', name: 'Smoke Test Fragrance', brand: 'Test House', advertiser: 'Test Retailer', price: 95, currency: 'USD', image: '/assets/images/chanel-card.webp', link: 'https://example.com/fragrance', shippingCost: null, availability: 'in_stock', size: ['3.4 oz'] }],
-        total: 1, page: 1, limit: 25, hasMore: false, searchQuery: 'fragrance', optimization: { exactMatchApplied: false }
-      });
+      if (url.includes('/api/products')) {
+        const requestedQuery = new URL(url).searchParams.get('q') || '';
+        window.__headerProductQueries.push(requestedQuery);
+        return json({
+          products: [{ id: 'smoke-1', name: requestedQuery === 'amber fragrance' ? 'Amber Search Queue Fragrance' : 'Smoke Test Fragrance', brand: 'Test House', advertiser: 'Test Retailer', price: 95, currency: 'USD', image: '/assets/images/chanel-card.webp', link: 'https://example.com/fragrance', shippingCost: null, availability: 'in_stock', size: ['3.4 oz'] }],
+          total: 1, page: 1, limit: 25, hasMore: false, searchQuery: requestedQuery, optimization: { exactMatchApplied: false }
+        });
+      }
       if (url.includes('open.er-api.com') || url.includes('frankfurter.app')) return json({ rates: { USD: 1, EUR: 0.9, GBP: 0.8 } });
       return json({});
     };
@@ -229,6 +234,44 @@ assert.equal(headerFavoriteResult.overflow, false, 'The Favorites navigation int
 assert.equal(headerFavoriteResult.keyboardMenuOpen, 'true', 'ArrowDown did not expose the saved-items options.');
 assert.equal(headerFavoriteResult.firstOptionFocused, true, 'Keyboard focus did not enter the saved-items options.');
 await pressEscape();
+
+await navigate('/main.html?smoke-authenticated=1#favorites');
+assert.deepEqual(await evaluate(`(() => ({
+  hash: location.hash,
+  favoritesHidden: document.getElementById('favorites').hidden
+}))()`), {
+  hash: '#favorites',
+  favoritesHidden: false
+}, 'The legacy homepage route did not preserve and reveal its Favorites destination.');
+
+const searchFromFavoritesResult = await evaluate(`
+  (async () => {
+    const input = document.getElementById('main-search');
+    window.__headerProductQueries.length = 0;
+    input.value = 'amber fragrance';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('.filter-search-btn').click();
+    const deadline = Date.now() + 1500;
+    while (Date.now() < deadline && !window.__headerProductQueries.includes('amber fragrance')) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return {
+      requestedQuery: window.__headerProductQueries.at(-1),
+      hash: location.hash,
+      favoritesHidden: document.getElementById('favorites').hidden,
+      shopHidden: document.getElementById('shop').hidden,
+      renderedCards: document.querySelectorAll('#products-grid .product-card').length,
+      renderedName: document.querySelector('#products-grid .product-name')?.textContent.trim() || ''
+    };
+  })()
+`);
+assert.equal(searchFromFavoritesResult.requestedQuery, 'amber fragrance', 'Searching from Favorites did not request a new catalog queue.');
+assert.equal(searchFromFavoritesResult.hash, '#filter', 'Searching from Favorites did not restore the catalog URL state.');
+assert.equal(searchFromFavoritesResult.favoritesHidden, true, 'Searching from Favorites left the saved-offers view visible.');
+assert.equal(searchFromFavoritesResult.shopHidden, false, 'Searching from Favorites left the catalog results hidden.');
+assert.ok(searchFromFavoritesResult.renderedCards > 0, 'Searching from Favorites did not render the new catalog queue.');
+assert.equal(searchFromFavoritesResult.renderedName, 'Amber Search Queue Fragrance', 'Searching from Favorites left the previous queue rendered.');
 
 for (const width of [900, 1024]) {
   await send('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: false });
@@ -390,18 +433,30 @@ assert.deepEqual(await evaluate(`(() => ({
   visualValue: document.getElementById('intensity').closest('.fc-select')?.querySelector('.fc-select__value')?.textContent
 }))()`), { nativeValue: 'strong', visualValue: 'Strong' }, 'Asynchronous account preferences did not synchronize the visible dropdown value.');
 assert.equal(await evaluate(`document.getElementById('google-method-status').textContent`), 'Not connected', 'An unlinked password account was labeled as Google-connected.');
-await evaluate(`document.querySelector('.account-sidebar a[href="#alerts"]').click()`);
+await evaluate(`document.querySelector('.account-sidebar a[href="#alerts"]').focus()`);
+await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter' });
+await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter' });
 await new Promise((resolve) => setTimeout(resolve, 250));
 const dealWatchEmptyState = await evaluate(`(() => {
   const state = document.getElementById('alerts-empty-state');
   const action = state.querySelector('.account-empty-state__action');
+  const heading = document.getElementById('alerts-title');
   const stateRect = state.getBoundingClientRect();
   const actionRect = action.getBoundingClientRect();
+  const headingFocusMarker = getComputedStyle(heading, '::after');
   return {
     visible: !state.hidden && stateRect.width > 0 && stateRect.height > 0,
     copy: state.textContent.replace(/\\s+/g, ' ').trim(),
     actionDisplay: getComputedStyle(action).display,
     shimmerDisplay: getComputedStyle(action, '::before').display,
+    headingFocused: document.activeElement === heading,
+    headingOutline: getComputedStyle(heading).outlineStyle,
+    headingOutlineWidth: parseFloat(getComputedStyle(heading).outlineWidth),
+    headingHasPaintedOutline: getComputedStyle(heading).outlineStyle !== 'none'
+      && parseFloat(getComputedStyle(heading).outlineWidth) > 0,
+    headingWidth: heading.getBoundingClientRect().width,
+    headingFocusMarkerWidth: parseFloat(headingFocusMarker.width),
+    headingFocusMarkerHeight: parseFloat(headingFocusMarker.height),
     actionInside: actionRect.left >= stateRect.left && actionRect.right <= stateRect.right
       && actionRect.top >= stateRect.top && actionRect.bottom <= stateRect.bottom,
     overflow: document.documentElement.scrollWidth > innerWidth
@@ -411,6 +466,16 @@ assert.equal(dealWatchEmptyState.visible, true, 'The empty Deal Watches state di
 assert.match(dealWatchEmptyState.copy, /No active deal watches/);
 assert.equal(dealWatchEmptyState.actionDisplay, 'flex', 'The Deal Watches action fell back to the broken inline layout.');
 assert.equal(dealWatchEmptyState.shimmerDisplay, 'none', 'The old button shimmer still escapes the Deal Watches action.');
+assert.equal(dealWatchEmptyState.headingFocused, true, 'Account navigation did not announce the newly revealed Deal Watches section.');
+assert.equal(dealWatchEmptyState.headingOutline, 'none', 'The focused Deal Watches heading still draws an oversized panel-width outline.');
+assert.equal(
+  dealWatchEmptyState.headingHasPaintedOutline,
+  false,
+  `The focused Deal Watches heading retained a painted ${dealWatchEmptyState.headingOutlineWidth}px panel-width outline.`
+);
+assert.equal(dealWatchEmptyState.headingFocusMarkerWidth, 72, 'Keyboard navigation did not render the compact Deal Watches focus marker.');
+assert.equal(dealWatchEmptyState.headingFocusMarkerHeight, 3, 'The Deal Watches keyboard focus marker is not visibly distinct.');
+assert.ok(dealWatchEmptyState.headingFocusMarkerWidth < dealWatchEmptyState.headingWidth / 2, 'The Deal Watches focus marker expanded into a panel-width rectangle.');
 assert.equal(dealWatchEmptyState.actionInside, true, 'The Deal Watches action overlaps or escapes its empty-state panel.');
 assert.equal(dealWatchEmptyState.overflow, false, 'The Deal Watches empty state introduces horizontal overflow.');
 await evaluate(`document.querySelector('.account-sidebar a[href="#profile"]').click()`);

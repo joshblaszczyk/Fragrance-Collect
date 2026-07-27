@@ -3674,6 +3674,12 @@ async function performSearch(searchTerm) {
     if (!validateSearchTerm(validatedSearchTerm)) {
         return;
     }
+
+    // The filter controls remain available while Favorites is open. A search
+    // from there is a request for a new catalog queue, not a filter operation
+    // on the saved offers, so restore the catalog before applying it.
+    if (isInFavoritesView) showMainContentView();
+
     const searchRevision = ++searchInteractionRevision;
     showSearchLoading(); // Show loading bar
 
