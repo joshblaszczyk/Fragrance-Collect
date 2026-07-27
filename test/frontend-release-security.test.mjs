@@ -77,6 +77,11 @@ test('GitHub Pages runtime uses the exact deployed Worker and removes one-time c
   assert.equal(window.consumeFragranceAuthCredential, undefined);
 });
 
+test('runtime does not build a client redirect from the current browser URL', async () => {
+  const runtime = await read('site-config.js');
+  assert.doesNotMatch(runtime, /window\.location\.replace\s*\(/);
+});
+
 test('localhost uses the unified Wrangler origin without a cross-origin escape hatch', async () => {
   const { window, replaced } = await runSiteConfig({
     hostname: 'localhost',

@@ -11,10 +11,6 @@
   } catch {
     // Storage can be unavailable in hardened/private browser contexts.
   }
-  if (window.location.protocol !== 'https:' && !isLocal) {
-    window.location.replace(`https:${window.location.href.substring(window.location.protocol.length)}`);
-    return;
-  }
   const initialParameters = new URLSearchParams(window.location.search);
   const initialHash = window.location.hash;
   const hashBody = initialHash.startsWith('#?')
